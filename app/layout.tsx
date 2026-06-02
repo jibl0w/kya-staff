@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
+import StaffInstallBanner from "./components/StaffInstallBanner";
 
 export const metadata: Metadata = {
   title: "KYA Staff Portal",
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </head>
         <body className="min-h-screen bg-slate-950 text-white antialiased">
           {children}
+          <StaffInstallBanner />
           <script
             dangerouslySetInnerHTML={{
               __html: `
