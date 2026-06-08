@@ -14,11 +14,13 @@ export default async function CustomersPage() {
     { data: kybProfiles },
     { data: documents },
     { data: transactions },
+    { data: eddRequests },
   ] = await Promise.all([
     supabaseServer.from("kyc_profiles").select("*"),
     supabaseServer.from("kyb_profiles").select("*"),
     supabaseServer.from("documents").select("user_id, status, verification_status, document_type"),
     supabaseServer.from("transactions").select("user_id, status, total_value, currency, transaction_ref"),
+    supabaseServer.from("edd_requests").select("*").order("created_at", { ascending: false }),
   ]);
 
   return (
@@ -27,6 +29,7 @@ export default async function CustomersPage() {
       kybProfiles={kybProfiles || []}
       documents={documents || []}
       transactions={transactions || []}
+      eddRequests={eddRequests || []}
     />
   );
 }
