@@ -180,7 +180,7 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
   const filtered = localTxns.filter(t => statusFilter === "all" ? true : t.status === statusFilter);
   const activeCount = localTxns.filter(t => t.status === "active" || t.status === "draft").length;
   const completeCount = localTxns.filter(t => t.status === "complete").length;
-  const totalPending = 0;
+  const flaggedCount = localTxns.filter(t => t.risk_flag).length;
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -209,7 +209,7 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
             { label: "Total", value: localTxns.length, color: "text-white" },
             { label: "Active", value: activeCount, color: "text-amber-400" },
             { label: "Complete", value: completeCount, color: "text-emerald-400" },
-            { label: "Steps Done", value: localSteps.filter(s => s.status === "complete").length, color: "text-blue-400" },
+            { label: "Flagged", value: flaggedCount, color: flaggedCount > 0 ? "text-red-400" : "text-white" },
           ].map(s => (
             <div key={s.label} className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
               <p className={"text-3xl font-black " + s.color}>{s.value}</p>
@@ -241,19 +241,25 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
               const completedSteps = txnSteps.filter(s => s.status === "complete").length;
               const progress = Math.round((completedSteps / 15) * 100);
               const kyb = getKybProfile(txn.user_id);
-              const kyc = getKycProfile(txn.user_id);
 
               return (
                 <div key={txn.id}
                   onClick={() => { setSelectedTxn(txn); setFormM(txn.form_m_number || ""); setLcNumber(txn.lc_number || ""); setAdReference(txn.ad_reference || ""); setStepNote(""); setActiveDetailTab("steps"); }}
-                  className={"rounded-2xl border p-5 cursor-pointer transition " + (selectedTxn?.id === txn.id ? "border-amber-400/40 bg-amber-400/5" : "border-white/10 bg-white/5 hover:border-white/20")}>
+                  className={"rounded-2xl border p-5 cursor-pointer transition " + (selectedTxn?.id === txn.id ? "border-amber-400/40 bg-amber-400/5" : txn.risk_flag ? "border-red-500/30 bg-red-500/5 hover:border-red-500/50" : "border-white/10 bg-white/5 hover:border-white/20")}>
 
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div>
                       <p className="text-xs text-slate-500 mb-0.5">Supplier</p>
                       <p className="font-bold text-white">{txn.supplier_name}</p>
                     </div>
-                    <span className={"text-xs font-medium border rounded-full px-3 py-1 flex-shrink-0 " + (statusColors[txn.status] || statusColors.draft)}>{txn.status}</span>
+                    <div className="flex flex-col items-end gap-1.5">
+                      <span className={"text-xs font-medium border rounded-full px-3 py-1 " + (statusColors[txn.status] || statusColors.draft)}>{txn.status}</span>
+                      {txn.risk_flag && (
+                        <span className="text-xs font-medium border rounded-full px-2 py-0.5 text-red-400 border-red-500/30 bg-red-500/10">
+                          ⚠ Flagged
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="rounded-lg bg-white/5 px-3 py-2 mb-3 flex items-center justify-between">
@@ -301,10 +307,25 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
                     <div>
                       <p className="text-xs text-slate-500 mb-0.5">Supplier</p>
                       <p className="font-bold text-white text-lg">{selectedTxn.supplier_name}</p>
-                      <p className="text-xs text-slate-500">{selectedTxn.supplier_category} • {selectedTxn.port_of_destination}</p>
+                      <p className="text-xs text-slate-500">{selectedTxn.supplier_category} · {selectedTxn.port_of_destination}</p>
                     </div>
-                    <span className={"text-xs font-medium border rounded-full px-3 py-1 " + (statusColors[selectedTxn.status] || statusColors.draft)}>{selectedTxn.status}</span>
+                    <div className="flex flex-col items-end gap-1.5">
+                      <span className={"text-xs font-medium border rounded-full px-3 py-1 " + (statusColors[selectedTxn.status] || statusColors.draft)}>{selectedTxn.status}</span>
+                      {selectedTxn.risk_flag && (
+                        <span className="text-xs font-medium border rounded-full px-2 py-0.5 text-red-400 border-red-500/30 bg-red-500/10">
+                          ⚠ Flagged
+                        </span>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Risk flag alert */}
+                  {selectedTxn.risk_flag && (
+                    <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3 mb-3">
+                      <p className="text-xs text-red-400 font-semibold mb-1">⚠ Transaction Monitoring Alert</p>
+                      <p className="text-xs text-slate-400">{selectedTxn.risk_flag_reason}</p>
+                    </div>
+                  )}
 
                   {/* Customer panel */}
                   <div className="rounded-xl bg-amber-500/5 border border-amber-500/20 p-3 mb-3">
@@ -346,13 +367,7 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
                         <div className="mt-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5">
                           <p className="text-xs text-emerald-400">✓ KYA · Form M · LC references linked</p>
                         </div>
-                        {selectedTxn.risk_flag && (
-                    <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3 mt-3">
-                      <p className="text-xs text-red-400 font-semibold mb-1">⚠ Transaction Monitoring Alert</p>
-                      <p className="text-xs text-slate-400">{selectedTxn.risk_flag_reason}</p>
-                    </div>
-                  )}
-                
+                      )}
                     </div>
                   </div>
                 </div>
@@ -518,7 +533,7 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
                             <div key={doc.id} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 flex items-center justify-between gap-3">
                               <div>
                                 <p className="text-sm font-medium text-white">{DOC_LABELS[doc.document_type] || doc.document_type.replace(/_/g, " ")}</p>
-                                <p className="text-xs text-slate-500">{new Date(doc.uploaded_at).toLocaleDateString("en-GB")}{doc.file_name ? " • " + doc.file_name : ""}</p>
+                                <p className="text-xs text-slate-500">{new Date(doc.uploaded_at).toLocaleDateString("en-GB")}{doc.file_name ? " · " + doc.file_name : ""}</p>
                               </div>
                               <div className="flex items-center gap-3 flex-shrink-0">
                                 <span className={"text-xs font-medium border rounded-full px-3 py-1 " + (doc.status === "approved" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" : doc.status === "rejected" ? "text-red-400 border-red-500/30 bg-red-500/10" : "text-amber-400 border-amber-500/30 bg-amber-500/10")}>{doc.status}</span>
