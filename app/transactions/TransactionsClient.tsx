@@ -22,6 +22,9 @@ interface Transaction {
   ad_reference?: string;
   notes?: string;
   created_at: string;
+  risk_flag?: boolean;
+  risk_flag_reason?: string;
+  monitoring_status?: string;
 }
 
 interface Step {
@@ -343,7 +346,13 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
                         <div className="mt-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5">
                           <p className="text-xs text-emerald-400">✓ KYA · Form M · LC references linked</p>
                         </div>
-                      )}
+                        {selectedTxn.risk_flag && (
+                    <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3 mt-3">
+                      <p className="text-xs text-red-400 font-semibold mb-1">⚠ Transaction Monitoring Alert</p>
+                      <p className="text-xs text-slate-400">{selectedTxn.risk_flag_reason}</p>
+                    </div>
+                  )}
+                
                     </div>
                   </div>
                 </div>

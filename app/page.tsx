@@ -9,20 +9,24 @@ export default async function StaffDashboard() {
   const { userId } = await auth();
   if (!userId || !ADMIN_IDS.includes(userId)) redirect("/sign-in");
 
-  const [
+const [
     { data: transactions },
     { data: documents },
     { data: txnDocs },
     { data: kycProfiles },
     { data: kybProfiles },
     { data: steps },
+    { data: flaggedTxns },
+    { data: eddRequests },
   ] = await Promise.all([
-    supabaseServer.from("transactions").select("id, transaction_ref, status, current_step, total_value, currency, created_at, supplier_name, user_id"),
+    supabaseServer.from("transactions").select("id, transaction_ref, status, current_step, total_value, currency, created_at, supplier_name, user_id, risk_flag, risk_flag_reason, monitoring_status"),
     supabaseServer.from("documents").select("id, status, verification_status, document_type, user_id, uploaded_at"),
     supabaseServer.from("transaction_documents").select("id, status, document_type, uploaded_at"),
     supabaseServer.from("kyc_profiles").select("user_id, first_name, last_name, kyc_status"),
     supabaseServer.from("kyb_profiles").select("user_id, company_name, kyb_status"),
     supabaseServer.from("transaction_steps").select("id, status, transaction_id"),
+    supabaseServer.from("transactions").select("id, transaction_ref, supplier_name, total_value, currency, user_id, risk_flag_reason, created_at").eq("risk_flag", true).eq("monitoring_status", "flagged").order("created_at", { ascending: false }),
+    supabaseServer.from("edd_requests").select("id, status").in("status", ["pending", "in_progress"]),
   ]);
 
   const txns = transactions || [];
@@ -30,6 +34,8 @@ export default async function StaffDashboard() {
   const tradeDocs = txnDocs || [];
   const kyc = kycProfiles || [];
   const kyb = kybProfiles || [];
+  const flagged = flaggedTxns || [];
+  const activeEdd = eddRequests || [];
 
   const activeTxns = txns.filter(t => t.status === "active" || t.status === "draft");
   const completeTxns = txns.filter(t => t.status === "complete");
@@ -98,6 +104,31 @@ export default async function StaffDashboard() {
         </div>
 
         {/* Alert banner */}
+        {flagged.length > 0 && (
+          <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-2 w-2 rounded-full bg-red-400 animate-pulse" />
+              <p className="font-semibold text-red-400">⚠ {flagged.length} transaction{flagged.length > 1 ? "s" : ""} flagged by monitoring</p>
+              <p className="text-sm text-slate-400">{flagged.length} high value or suspicious transaction{flagged.length > 1 ? "s" : ""} require review</p>
+            </div>
+            <Link href="/transactions" className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-400 transition">
+              Review Now →
+            </Link>
+          </div>
+        )}
+
+        {activeEdd.length > 0 && (
+          <div className="mb-4 rounded-2xl border border-purple-500/30 bg-purple-500/10 px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-2 w-2 rounded-full bg-purple-400 animate-pulse" />
+              <p className="font-semibold text-purple-400">{activeEdd.length} active EDD request{activeEdd.length > 1 ? "s" : ""}</p>
+              <p className="text-sm text-slate-400">Enhanced Due Diligence in progress</p>
+            </div>
+            <Link href="/customers" className="rounded-xl bg-purple-500 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-400 transition">
+              View Customers →
+            </Link>
+          </div>
+        )}
         {totalPending > 0 && (
           <div className="mb-8 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -116,8 +147,8 @@ export default async function StaffDashboard() {
           {[
             { label: "Active Transactions", value: activeTxns.length, color: "text-amber-400", sub: "In progress" },
             { label: "Completed", value: completeTxns.length, color: "text-emerald-400", sub: "All time" },
-            { label: "Total Value", value: "$" + (totalValue / 1000).toFixed(0) + "k", color: "text-blue-400", sub: "USD across all txns" },
-            { label: "Pending Review", value: totalPending, color: "text-red-400", sub: "Documents awaiting action" },
+            { label: "Flagged", value: flagged.length, color: flagged.length > 0 ? "text-red-400" : "text-white", sub: "Transaction monitoring alerts" },
+            { label: "Pending Review", value: totalPending, color: "text-amber-400", sub: "Documents awaiting action" },
           ].map(s => (
             <div key={s.label} className="rounded-2xl border border-white/10 bg-white/5 p-6">
               <p className={"text-3xl font-black " + s.color}>{s.value}</p>
