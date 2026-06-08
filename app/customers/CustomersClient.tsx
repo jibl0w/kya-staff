@@ -15,6 +15,13 @@ interface KycProfile {
   email?: string;
   kyc_status?: string;
   created_at?: string;
+  bvn?: string;
+  bvn_verification_status?: string;
+  bvn_verified_name?: string;
+  bvn_verified_dob?: string;
+  bvn_verified_at?: string;
+  risk_rating?: string;
+  risk_notes?: string;
 }
 
 interface KybProfile {
@@ -31,6 +38,8 @@ interface KybProfile {
   representative_phone?: string;
   kyb_status?: string;
   created_at?: string;
+  risk_rating?: string;
+  risk_notes?: string;
 }
 
 interface Doc {
@@ -54,6 +63,25 @@ interface Props {
   documents: Doc[];
   transactions: Txn[];
 }
+
+const riskColor = (rating?: string) => {
+  if (rating === "high") return "bg-red-500/20 text-red-400 border border-red-500/30";
+  if (rating === "medium") return "bg-amber-500/20 text-amber-400 border border-amber-500/30";
+  return "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+};
+
+const bvnBadge = (status?: string) => {
+  if (status === "verified") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ BVN Verified" };
+  if (status === "mismatch") return { color: "bg-red-500/20 text-red-400", label: "⚠ BVN Mismatch" };
+  if (status === "failed") return { color: "bg-red-500/20 text-red-400", label: "✕ BVN Failed" };
+  return { color: "bg-slate-500/20 text-slate-400", label: "BVN Unverified" };
+};
+
+const statusColor: Record<string, string> = {
+  approved: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
+  pending: "text-amber-400 border-amber-500/30 bg-amber-500/10",
+  rejected: "text-red-400 border-red-500/30 bg-red-500/10",
+};
 
 export default function CustomersClient({ kycProfiles = [], kybProfiles = [], documents = [], transactions = [] }: Props) {
   const [activeTab, setActiveTab] = useState<"personal" | "business">("personal");
@@ -87,12 +115,8 @@ export default function CustomersClient({ kycProfiles = [], kybProfiles = [], do
 
   const selectedKyc = selectedUser ? kycProfiles.find(p => p.user_id === selectedUser) || null : null;
   const selectedKyb = selectedUser ? kybProfiles.find(p => p.user_id === selectedUser) || null : null;
-
-  const statusColor: Record<string, string> = {
-    approved: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
-    pending: "text-amber-400 border-amber-500/30 bg-amber-500/10",
-    rejected: "text-red-400 border-red-500/30 bg-red-500/10",
-  };
+  const activeRating = activeTab === "personal" ? selectedKyc?.risk_rating : selectedKyb?.risk_rating;
+  const activeNotes = activeTab === "personal" ? selectedKyc?.risk_notes : selectedKyb?.risk_notes;
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -157,11 +181,14 @@ export default function CustomersClient({ kycProfiles = [], kybProfiles = [], do
           <div className="flex flex-col gap-3">
             {activeTab === "personal" && (
               filteredKyc.length === 0 ? (
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center"><p className="text-slate-400">No personal customers found.</p></div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center">
+                  <p className="text-slate-400">No personal customers found.</p>
+                </div>
               ) : filteredKyc.map(p => {
                 const docStats = getDocStatus(p.user_id);
                 const txns = getUserTxns(p.user_id);
                 const isSelected = selectedUser === p.user_id;
+                const bvn = bvnBadge(p.bvn_verification_status);
                 return (
                   <div key={p.user_id} onClick={() => setSelectedUser(isSelected ? null : p.user_id)}
                     className={"rounded-2xl border p-5 cursor-pointer transition " + (isSelected ? "border-blue-400/40 bg-blue-400/5" : "border-white/10 bg-white/5 hover:border-white/20")}>
@@ -171,15 +198,21 @@ export default function CustomersClient({ kycProfiles = [], kybProfiles = [], do
                         {p.email && <p className="text-xs text-slate-500 mt-0.5">{p.email}</p>}
                         {p.nationality && <p className="text-xs text-slate-500">{p.nationality}</p>}
                       </div>
-                      <span className={"text-xs font-medium border rounded-full px-3 py-1 flex-shrink-0 " + (statusColor[p.kyc_status || "pending"] || statusColor.pending)}>
-                        {p.kyc_status || "pending"}
-                      </span>
+                      <div className="flex flex-col items-end gap-1.5">
+                        <span className={"text-xs font-medium border rounded-full px-3 py-1 " + (statusColor[p.kyc_status || "pending"] || statusColor.pending)}>
+                          {p.kyc_status || "pending"}
+                        </span>
+                        <span className={"text-xs font-medium rounded-full px-2 py-0.5 " + riskColor(p.risk_rating)}>
+                          {(p.risk_rating || "low").toUpperCase()}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex gap-4 text-xs">
-                      <span className="text-emerald-400">{docStats.approved} docs approved</span>
+                    <div className="flex gap-3 flex-wrap text-xs">
+                      <span className={bvn.color + " rounded-full px-2 py-0.5 text-xs"}>{bvn.label}</span>
+                      <span className="text-emerald-400">{docStats.approved} approved</span>
                       {docStats.pending > 0 && <span className="text-amber-400">{docStats.pending} pending</span>}
                       {docStats.rejected > 0 && <span className="text-red-400">{docStats.rejected} rejected</span>}
-                      <span className="text-slate-500">{txns.length} transaction{txns.length !== 1 ? "s" : ""}</span>
+                      <span className="text-slate-500">{txns.length} txn{txns.length !== 1 ? "s" : ""}</span>
                     </div>
                   </div>
                 );
@@ -188,7 +221,9 @@ export default function CustomersClient({ kycProfiles = [], kybProfiles = [], do
 
             {activeTab === "business" && (
               filteredKyb.length === 0 ? (
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center"><p className="text-slate-400">No business customers found.</p></div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center">
+                  <p className="text-slate-400">No business customers found.</p>
+                </div>
               ) : filteredKyb.map(p => {
                 const docStats = getDocStatus(p.user_id);
                 const txns = getUserTxns(p.user_id);
@@ -202,15 +237,20 @@ export default function CustomersClient({ kycProfiles = [], kybProfiles = [], do
                         {p.cac_number && <p className="text-xs text-slate-500 font-mono mt-0.5">CAC: {p.cac_number}</p>}
                         {p.representative_name && <p className="text-xs text-slate-500">Director: {p.representative_title} {p.representative_name}</p>}
                       </div>
-                      <span className={"text-xs font-medium border rounded-full px-3 py-1 flex-shrink-0 " + (statusColor[p.kyb_status || "pending"] || statusColor.pending)}>
-                        {p.kyb_status || "pending"}
-                      </span>
+                      <div className="flex flex-col items-end gap-1.5">
+                        <span className={"text-xs font-medium border rounded-full px-3 py-1 " + (statusColor[p.kyb_status || "pending"] || statusColor.pending)}>
+                          {p.kyb_status || "pending"}
+                        </span>
+                        <span className={"text-xs font-medium rounded-full px-2 py-0.5 " + riskColor(p.risk_rating)}>
+                          {(p.risk_rating || "low").toUpperCase()}
+                        </span>
+                      </div>
                     </div>
                     <div className="flex gap-4 text-xs">
-                      <span className="text-emerald-400">{docStats.approved} docs approved</span>
+                      <span className="text-emerald-400">{docStats.approved} approved</span>
                       {docStats.pending > 0 && <span className="text-amber-400">{docStats.pending} pending</span>}
                       {docStats.rejected > 0 && <span className="text-red-400">{docStats.rejected} rejected</span>}
-                      <span className="text-slate-500">{txns.length} transaction{txns.length !== 1 ? "s" : ""}</span>
+                      <span className="text-slate-500">{txns.length} txn{txns.length !== 1 ? "s" : ""}</span>
                     </div>
                   </div>
                 );
@@ -218,7 +258,7 @@ export default function CustomersClient({ kycProfiles = [], kybProfiles = [], do
             )}
           </div>
 
-          {/* Customer detail panel */}
+          {/* Detail panel */}
           <div>
             {!selectedUser ? (
               <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center sticky top-24">
@@ -226,20 +266,24 @@ export default function CustomersClient({ kycProfiles = [], kybProfiles = [], do
               </div>
             ) : (
               <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden sticky top-24 max-h-[80vh] overflow-y-auto">
+
+                {/* Header */}
                 <div className="border-b border-white/10 bg-white/5 px-6 py-4">
                   {activeTab === "personal" && selectedKyc ? (
                     <>
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2 mb-3 flex-wrap">
                         <span className="rounded-full bg-blue-500/20 border border-blue-500/30 px-2 py-0.5 text-xs font-medium text-blue-400">Personal KYC</span>
                         <span className={"text-xs font-medium border rounded-full px-3 py-1 " + (statusColor[selectedKyc.kyc_status || "pending"] || statusColor.pending)}>{selectedKyc.kyc_status || "pending"}</span>
+                        <span className={"text-xs font-medium rounded-full px-2 py-0.5 " + riskColor(selectedKyc.risk_rating)}>{(selectedKyc.risk_rating || "low").toUpperCase()} RISK</span>
                       </div>
                       <p className="text-xl font-bold text-white">{selectedKyc.first_name} {selectedKyc.last_name}</p>
                     </>
                   ) : activeTab === "business" && selectedKyb ? (
                     <>
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2 mb-3 flex-wrap">
                         <span className="rounded-full bg-purple-500/20 border border-purple-500/30 px-2 py-0.5 text-xs font-medium text-purple-400">Business KYB</span>
                         <span className={"text-xs font-medium border rounded-full px-3 py-1 " + (statusColor[selectedKyb.kyb_status || "pending"] || statusColor.pending)}>{selectedKyb.kyb_status || "pending"}</span>
+                        <span className={"text-xs font-medium rounded-full px-2 py-0.5 " + riskColor(selectedKyb.risk_rating)}>{(selectedKyb.risk_rating || "low").toUpperCase()} RISK</span>
                       </div>
                       <p className="text-xl font-bold text-white">{selectedKyb.company_name}</p>
                     </>
@@ -247,6 +291,49 @@ export default function CustomersClient({ kycProfiles = [], kybProfiles = [], do
                 </div>
 
                 <div className="p-6 flex flex-col gap-6">
+
+                  {/* Risk Rating */}
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Risk Assessment</p>
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className={"text-sm font-bold px-3 py-1 rounded-full " + riskColor(activeRating)}>
+                          {(activeRating || "low").toUpperCase()} RISK
+                        </span>
+                      </div>
+                      {activeNotes && (
+                        <p className="text-xs text-slate-400 italic">{activeNotes}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* BVN Verification — personal only */}
+                  {activeTab === "personal" && selectedKyc && (
+                    <div>
+                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">BVN Verification</p>
+                      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className={"text-xs font-semibold px-3 py-1 rounded-full " + bvnBadge(selectedKyc.bvn_verification_status).color}>
+                            {bvnBadge(selectedKyc.bvn_verification_status).label}
+                          </span>
+                          {selectedKyc.bvn_verified_at && (
+                            <span className="text-xs text-slate-500">
+                              {new Date(selectedKyc.bvn_verified_at).toLocaleDateString("en-GB")}
+                            </span>
+                          )}
+                        </div>
+                        {selectedKyc.bvn_verified_name && (
+                          <p className="text-xs text-slate-400">Verified as: <span className="text-white">{selectedKyc.bvn_verified_name}</span></p>
+                        )}
+                        {selectedKyc.bvn_verified_dob && (
+                          <p className="text-xs text-slate-400 mt-1">DOB on record: <span className="text-white">{selectedKyc.bvn_verified_dob}</span></p>
+                        )}
+                        {!selectedKyc.bvn_verification_status && (
+                          <p className="text-xs text-slate-500">BVN verification not yet run.</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Personal details */}
                   {activeTab === "personal" && selectedKyc && (
@@ -350,7 +437,10 @@ export default function CustomersClient({ kycProfiles = [], kybProfiles = [], do
                               <p className="text-sm font-mono text-white">{txn.transaction_ref}</p>
                               <p className="text-xs text-slate-500">${Number(txn.total_value).toLocaleString()} {txn.currency}</p>
                             </div>
-                            <span className={"text-xs font-medium border rounded-full px-3 py-1 " + (txn.status === "complete" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" : txn.status === "active" ? "text-amber-400 border-amber-500/30 bg-amber-500/10" : "text-slate-400 border-slate-500/30 bg-slate-500/10")}>
+                            <span className={"text-xs font-medium border rounded-full px-3 py-1 " +
+                              (txn.status === "complete" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
+                               txn.status === "active" ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
+                               "text-slate-400 border-slate-500/30 bg-slate-500/10")}>
                               {txn.status}
                             </span>
                           </div>
