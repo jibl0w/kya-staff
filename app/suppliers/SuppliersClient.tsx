@@ -2,31 +2,31 @@
 
 import { useState } from "react";
 import Link from "next/link";
-
 interface Supplier {
   id: string;
   supplier_name: string;
-  trade_name?: string;
+  trade_name?: string | null;
   country: string;
-  city?: string;
-  year_established?: string;
+  city?: string | null;
+  year_established?: string | null;
   primary_category: string;
   sub_categories: string[];
-  products_offered?: string;
+  products_offered?: string | null;
   minimum_order_value: number;
   lead_time_days: number;
   payment_terms: string;
   currencies_accepted: string[];
   verification_status: string;
-  verified_at?: string;
-  contact_person?: string;
-  contact_email?: string;
-  contact_phone?: string;
-  website?: string;
-  internal_notes?: string;
+  verified_at?: string | null;
+  verified_by?: string | null;
+  contact_person?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  website?: string | null;
+  internal_notes?: string | null;
   created_at: string;
+  updated_at?: string | null;
 }
-
 const CATEGORIES = [
   "Electronics & Consumer Technology",
   "Solar & Energy Infrastructure",
