@@ -159,6 +159,13 @@ export default function SuppliersClient({ suppliers: initialSuppliers }: { suppl
           const data = await res.json();
           setSuppliers(prev => [data.supplier, ...prev]);
           cancelForm();
+        } else {
+          const data = await res.json();
+          if (data.error?.includes("unique") || data.error?.includes("duplicate")) {
+            setError("A supplier with this name already exists.");
+          } else {
+            setError(data.error || "Failed to save supplier.");
+          }
         }
       }
     } finally { setSaving(false); }
