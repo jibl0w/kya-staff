@@ -1,4 +1,4 @@
-Limport { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseServer } from "@/lib/supabase-server";
 import AuditClient from "./AuditClient";
