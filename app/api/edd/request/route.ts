@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     const customerEmail = clerkUser.email_addresses?.[0]?.email_address;
     const customerName = ((clerkUser.first_name || "") + " " + (clerkUser.last_name || "")).trim() || "Customer";
     const customerUrl = process.env.NEXT_PUBLIC_CUSTOMER_URL || "https://kya.com.ng";
-    const eddUrl = customerUrl + "/dashboard/edd";
+    const eddUrl = customerUrl + "/edd-redirect";
 
     if (customerEmail) {
       const { Resend } = await import("resend");
