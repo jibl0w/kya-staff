@@ -267,6 +267,7 @@ export default function CustomersClient({
         </div>
         <nav className="flex items-center gap-6">
           <Link href="/suppliers" className="text-sm text-slate-400 hover:text-white transition">Suppliers</Link>
+          <Link href="/audit" className="text-sm text-slate-400 hover:text-white transition">Audit Log</Link>
           <Link href="/" className="text-sm text-slate-400 hover:text-white transition">Dashboard</Link>
           <Link href="/documents" className="text-sm text-slate-400 hover:text-white transition">Documents</Link>
           <Link href="/transactions" className="text-sm text-slate-400 hover:text-white transition">Transactions</Link>

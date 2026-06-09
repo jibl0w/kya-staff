@@ -88,7 +88,9 @@ export default async function StaffDashboard() {
           <span className="rounded-full bg-amber-400/10 border border-amber-400/20 px-3 py-0.5 text-xs font-medium text-amber-400">Staff Portal</span>
         </div>
         <nav className="flex items-center gap-6">
+          <Link href="/audit" className="text-sm text-slate-400 hover:text-white transition">Audit Log</Link>
           <Link href="/suppliers" className="text-sm text-slate-400 hover:text-white transition">Suppliers</Link>
+          <Link href="/audit" className="text-sm text-slate-400 hover:text-white transition">Audit Log</Link>
           <Link href="/" className="text-sm font-medium text-white border-b-2 border-amber-400 pb-0.5">Dashboard</Link>
           <Link href="/documents" className="text-sm text-slate-400 hover:text-white transition relative">
             Documents
