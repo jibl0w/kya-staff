@@ -85,7 +85,7 @@ export async function POST(req: Request) {
               <table cellpadding="0" cellspacing="0" style="margin-top:24px;">
                 <tr>
                   <td style="background:#C9A84C;border-radius:8px;">
-                    <a href="${process.env.NEXT_PUBLIC_CUSTOMER_URL || "https://kya.com.ng"}/dashboard/edd" style="display:inline-block;background:#C9A84C;color:#080C14;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:700;font-size:13px;text-transform:uppercase;">Upload Documents &rarr;</a>
+                   href="${process.env.NEXT_PUBLIC_CUSTOMER_URL || "https://kya.com.ng"}/sign-in?redirect_url=/dashboard/edd" style="display:inline-block;background:#C9A84C;color:#080C14;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:700;font-size:13px;text-transform:uppercase;">Upload Documents &rarr;</a>
                   </td>
                 </tr>
               </table>
