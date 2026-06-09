@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
+import { writeAuditLog } from "@/lib/audit";
 
 const ADMIN_IDS = process.env.ADMIN_USER_IDS?.split(",") || [];
 
@@ -29,6 +30,16 @@ export async function POST(req: Request) {
     .eq("user_id", customerId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await writeAuditLog({
+    performedBy: userId,
+    actionType: "risk_rating_updated",
+    entityType: accountType === "personal" ? "kyc_profile" : "kyb_profile",
+    entityId: customerId,
+    customerId,
+    description: `Risk rating updated to ${riskRating.toUpperCase()} for ${accountType} account${riskNotes ? " — " + riskNotes : ""}`,
+    metadata: { risk_rating: riskRating, risk_notes: riskNotes, account_type: accountType },
+  });
 
   return NextResponse.json({ success: true });
 }

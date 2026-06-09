@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
+import { writeAuditLog } from "@/lib/audit";
 
 const ADMIN_IDS = process.env.ADMIN_USER_IDS?.split(",") || [];
 
@@ -48,5 +49,15 @@ export async function POST(req: Request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await writeAuditLog({
+    performedBy: userId,
+    actionType: "supplier_added",
+    entityType: "supplier",
+    entityId: data.id,
+    description: `New supplier added: ${supplier_name} (${primary_category}, ${country || "China"})`,
+    metadata: { supplier_name, primary_category, country },
+  });
+
   return NextResponse.json({ success: true, supplier: data });
 }

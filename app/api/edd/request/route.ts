@@ -1,3 +1,4 @@
+import { writeAuditLog } from "@/lib/audit";
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
@@ -117,6 +118,14 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("EDD notification error:", err);
   }
-
+await writeAuditLog({
+    performedBy: userId,
+    actionType: "edd_requested",
+    entityType: "edd_request",
+    entityId: data.id,
+    customerId: customerId,
+    description: `EDD requested: ${reason}${documentsRequired?.length > 0 ? " — Documents: " + documentsRequired.join(", ") : ""}`,
+    metadata: { reason, documents_required: documentsRequired, notes },
+  });
   return NextResponse.json({ success: true, eddRequestId: data.id });
 }
