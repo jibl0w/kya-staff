@@ -22,7 +22,18 @@ interface KycProfile {
   bvn_verified_at?: string;
   nin?: string;
   nin_verification_status?: string;
-  nin_verified_name?: string;
+  nin_verified_name?: string;aml_status?: string;
+  aml_screened_at?: string;
+  liveness_status?: string;
+  liveness_probability?: number;
+  liveness_checked_at?: string;
+  face_match_status?: string;
+  face_match_confidence?: number;
+  face_match_checked_at?: string;
+  risk_rating?: string;
+  risk_notes?: string;
+  risk_updated_at?: string;
+}
   nin_verified_at?: string;
   aml_status?: string;
   aml_screened_at?: string;
