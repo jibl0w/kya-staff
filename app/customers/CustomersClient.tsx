@@ -20,6 +20,12 @@ interface KycProfile {
   bvn_verified_name?: string;
   bvn_verified_dob?: string;
   bvn_verified_at?: string;
+  nin?: string;
+  nin_verification_status?: string;
+  nin_verified_name?: string;
+  nin_verified_at?: string;
+  aml_status?: string;
+  aml_screened_at?: string;
   risk_rating?: string;
   risk_notes?: string;
   risk_updated_at?: string;
@@ -39,6 +45,11 @@ interface KybProfile {
   representative_phone?: string;
   kyb_status?: string;
   created_at?: string;
+  cac_verification_status?: string;
+  cac_verified_name?: string;
+  cac_verified_at?: string;
+  aml_status?: string;
+  aml_screened_at?: string;
   risk_rating?: string;
   risk_notes?: string;
   risk_updated_at?: string;
@@ -90,6 +101,26 @@ const bvnBadge = (status?: string) => {
   return { color: "bg-slate-500/20 text-slate-400", label: "BVN Unverified" };
 };
 
+const ninBadge = (status?: string) => {
+  if (status === "verified") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ NIN Verified" };
+  if (status === "mismatch") return { color: "bg-red-500/20 text-red-400", label: "⚠ NIN Mismatch" };
+  if (status === "failed") return { color: "bg-red-500/20 text-red-400", label: "✕ NIN Failed" };
+  return { color: "bg-slate-500/20 text-slate-400", label: "NIN Unverified" };
+};
+
+const cacBadge = (status?: string) => {
+  if (status === "verified") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ CAC Verified" };
+  if (status === "mismatch") return { color: "bg-red-500/20 text-red-400", label: "⚠ CAC Mismatch" };
+  if (status === "failed") return { color: "bg-red-500/20 text-red-400", label: "✕ CAC Failed" };
+  return { color: "bg-slate-500/20 text-slate-400", label: "CAC Unverified" };
+};
+
+const amlBadge = (status?: string) => {
+  if (status === "clear") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ AML Clear" };
+  if (status === "flagged") return { color: "bg-red-500/20 text-red-400", label: "⚠ AML Flagged" };
+  return { color: "bg-slate-500/20 text-slate-400", label: "Not Screened" };
+};
+
 const eddStatusColor: Record<string, string> = {
   pending: "text-amber-400 border-amber-500/30 bg-amber-500/10",
   in_progress: "text-blue-400 border-blue-500/30 bg-blue-500/10",
@@ -126,16 +157,12 @@ export default function CustomersClient({
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<"profile" | "risk" | "edd">("profile");
-
-  // Risk rating state
   const [editingRisk, setEditingRisk] = useState(false);
   const [newRiskRating, setNewRiskRating] = useState("");
   const [newRiskNotes, setNewRiskNotes] = useState("");
   const [savingRisk, setSavingRisk] = useState(false);
   const [localKyc, setLocalKyc] = useState<KycProfile[]>(kycProfiles);
   const [localKyb, setLocalKyb] = useState<KybProfile[]>(kybProfiles);
-
-  // EDD state
   const [showEddForm, setShowEddForm] = useState(false);
   const [eddReason, setEddReason] = useState("");
   const [eddNotes, setEddNotes] = useState("");
@@ -182,24 +209,13 @@ export default function CustomersClient({
       const res = await fetch("/api/update-risk-rating", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customerId: selectedUser,
-          accountType: activeTab,
-          riskRating: newRiskRating,
-          riskNotes: newRiskNotes,
-        }),
+        body: JSON.stringify({ customerId: selectedUser, accountType: activeTab, riskRating: newRiskRating, riskNotes: newRiskNotes }),
       });
       if (res.ok) {
         if (activeTab === "personal") {
-          setLocalKyc(prev => prev.map(p => p.user_id === selectedUser
-            ? { ...p, risk_rating: newRiskRating, risk_notes: newRiskNotes, risk_updated_at: new Date().toISOString() }
-            : p
-          ));
+          setLocalKyc(prev => prev.map(p => p.user_id === selectedUser ? { ...p, risk_rating: newRiskRating, risk_notes: newRiskNotes, risk_updated_at: new Date().toISOString() } : p));
         } else {
-          setLocalKyb(prev => prev.map(p => p.user_id === selectedUser
-            ? { ...p, risk_rating: newRiskRating, risk_notes: newRiskNotes, risk_updated_at: new Date().toISOString() }
-            : p
-          ));
+          setLocalKyb(prev => prev.map(p => p.user_id === selectedUser ? { ...p, risk_rating: newRiskRating, risk_notes: newRiskNotes, risk_updated_at: new Date().toISOString() } : p));
         }
         setEditingRisk(false);
       }
@@ -213,28 +229,13 @@ export default function CustomersClient({
       const res = await fetch("/api/edd/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customerId: selectedUser,
-          reason: eddReason,
-          documentsRequired: eddDocs,
-          notes: eddNotes,
-        }),
+        body: JSON.stringify({ customerId: selectedUser, reason: eddReason, documentsRequired: eddDocs, notes: eddNotes }),
       });
       if (res.ok) {
         const data = await res.json();
-        setLocalEdd(prev => [...prev, {
-          id: data.eddRequestId,
-          user_id: selectedUser,
-          reason: eddReason,
-          status: "pending",
-          documents_required: eddDocs,
-          notes: eddNotes,
-          created_at: new Date().toISOString(),
-        }]);
+        setLocalEdd(prev => [...prev, { id: data.eddRequestId, user_id: selectedUser, reason: eddReason, status: "pending", documents_required: eddDocs, notes: eddNotes, created_at: new Date().toISOString() }]);
         setShowEddForm(false);
-        setEddReason("");
-        setEddNotes("");
-        setEddDocs([]);
+        setEddReason(""); setEddNotes(""); setEddDocs([]);
         setDetailTab("edd");
       }
     } finally { setSubmittingEdd(false); }
@@ -248,14 +249,28 @@ export default function CustomersClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ eddRequestId: eddId, status }),
       });
-      if (res.ok) {
-        setLocalEdd(prev => prev.map(e => e.id === eddId ? { ...e, status } : e));
-      }
+      if (res.ok) setLocalEdd(prev => prev.map(e => e.id === eddId ? { ...e, status } : e));
     } finally { setUpdatingEdd(null); }
   }
 
   function toggleEddDoc(doc: string) {
     setEddDocs(prev => prev.includes(doc) ? prev.filter(d => d !== doc) : [...prev, doc]);
+  }
+
+  function verificationSection(label: string, badge: { color: string; label: string }, verifiedAt?: string, verifiedName?: string, extra?: string) {
+    return (
+      <div>
+        <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">{label}</p>
+        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+          <div className="flex items-center gap-3 mb-2">
+            <span className={"text-xs font-semibold px-3 py-1 rounded-full " + badge.color}>{badge.label}</span>
+            {verifiedAt && <span className="text-xs text-slate-500">{new Date(verifiedAt).toLocaleDateString("en-GB")}</span>}
+          </div>
+          {verifiedName && <p className="text-xs text-slate-400">Verified as: <span className="text-white">{verifiedName}</span></p>}
+          {extra && <p className="text-xs text-slate-400 mt-1">{extra}</p>}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -266,12 +281,12 @@ export default function CustomersClient({
           <span className="rounded-full bg-amber-400/10 border border-amber-400/20 px-3 py-0.5 text-xs font-medium text-amber-400">Staff Portal</span>
         </div>
         <nav className="flex items-center gap-6">
-          <Link href="/suppliers" className="text-sm text-slate-400 hover:text-white transition">Suppliers</Link>
-          <Link href="/audit" className="text-sm text-slate-400 hover:text-white transition">Audit Log</Link>
           <Link href="/" className="text-sm text-slate-400 hover:text-white transition">Dashboard</Link>
           <Link href="/documents" className="text-sm text-slate-400 hover:text-white transition">Documents</Link>
           <Link href="/transactions" className="text-sm text-slate-400 hover:text-white transition">Transactions</Link>
           <Link href="/customers" className="text-sm font-medium text-white border-b-2 border-amber-400 pb-0.5">Customers</Link>
+          <Link href="/suppliers" className="text-sm text-slate-400 hover:text-white transition">Suppliers</Link>
+          <Link href="/audit" className="text-sm text-slate-400 hover:text-white transition">Audit Log</Link>
         </nav>
       </header>
 
@@ -343,6 +358,8 @@ export default function CustomersClient({
                     </div>
                     <div className="flex gap-3 flex-wrap text-xs">
                       <span className={bvn.color + " rounded-full px-2 py-0.5"}>{bvn.label}</span>
+                      <span className={ninBadge(p.nin_verification_status).color + " rounded-full px-2 py-0.5"}>{ninBadge(p.nin_verification_status).label}</span>
+                      <span className={amlBadge(p.aml_status).color + " rounded-full px-2 py-0.5"}>{amlBadge(p.aml_status).label}</span>
                       <span className="text-emerald-400">{docStats.approved} approved</span>
                       {docStats.pending > 0 && <span className="text-amber-400">{docStats.pending} pending</span>}
                       {docStats.rejected > 0 && <span className="text-red-400">{docStats.rejected} rejected</span>}
@@ -376,7 +393,9 @@ export default function CustomersClient({
                         {eddCount > 0 && <span className="text-xs font-medium rounded-full px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30">EDD Active</span>}
                       </div>
                     </div>
-                    <div className="flex gap-4 text-xs">
+                    <div className="flex gap-3 flex-wrap text-xs">
+                      <span className={cacBadge(p.cac_verification_status).color + " rounded-full px-2 py-0.5"}>{cacBadge(p.cac_verification_status).label}</span>
+                      <span className={amlBadge(p.aml_status).color + " rounded-full px-2 py-0.5"}>{amlBadge(p.aml_status).label}</span>
                       <span className="text-emerald-400">{docStats.approved} approved</span>
                       {docStats.pending > 0 && <span className="text-amber-400">{docStats.pending} pending</span>}
                       {docStats.rejected > 0 && <span className="text-red-400">{docStats.rejected} rejected</span>}
@@ -421,7 +440,6 @@ export default function CustomersClient({
                     </>
                   ) : null}
 
-                  {/* Detail tabs */}
                   <div className="flex gap-2 mt-4">
                     {(["profile", "risk", "edd"] as const).map(tab => (
                       <button key={tab} onClick={() => setDetailTab(tab)}
@@ -437,25 +455,18 @@ export default function CustomersClient({
                   {/* PROFILE TAB */}
                   {detailTab === "profile" && (
                     <>
-                      {/* BVN Verification — personal only */}
-                      {activeTab === "personal" && selectedKyc && (
-                        <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">BVN Verification</p>
-                          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                            <div className="flex items-center gap-3 mb-2">
-                              <span className={"text-xs font-semibold px-3 py-1 rounded-full " + bvnBadge(selectedKyc.bvn_verification_status).color}>
-                                {bvnBadge(selectedKyc.bvn_verification_status).label}
-                              </span>
-                              {selectedKyc.bvn_verified_at && (
-                                <span className="text-xs text-slate-500">{new Date(selectedKyc.bvn_verified_at).toLocaleDateString("en-GB")}</span>
-                              )}
-                            </div>
-                            {selectedKyc.bvn_verified_name && <p className="text-xs text-slate-400">Verified as: <span className="text-white">{selectedKyc.bvn_verified_name}</span></p>}
-                            {selectedKyc.bvn_verified_dob && <p className="text-xs text-slate-400 mt-1">DOB on record: <span className="text-white">{selectedKyc.bvn_verified_dob}</span></p>}
-                            {!selectedKyc.bvn_verification_status && <p className="text-xs text-slate-500">BVN verification not yet run.</p>}
-                          </div>
-                        </div>
-                      )}
+                      {/* Personal verification sections */}
+                      {activeTab === "personal" && selectedKyc && (<>
+                        {verificationSection("BVN Verification", bvnBadge(selectedKyc.bvn_verification_status), selectedKyc.bvn_verified_at || undefined, selectedKyc.bvn_verified_name || undefined, selectedKyc.bvn_verified_dob ? "DOB on record: " + selectedKyc.bvn_verified_dob : undefined)}
+                        {verificationSection("NIN Verification", ninBadge(selectedKyc.nin_verification_status), selectedKyc.nin_verified_at || undefined, selectedKyc.nin_verified_name || undefined)}
+                        {verificationSection("AML / PEP Screening", amlBadge(selectedKyc.aml_status), selectedKyc.aml_screened_at || undefined)}
+                      </>)}
+
+                      {/* Business verification sections */}
+                      {activeTab === "business" && selectedKyb && (<>
+                        {verificationSection("CAC Verification", cacBadge(selectedKyb.cac_verification_status), selectedKyb.cac_verified_at || undefined, selectedKyb.cac_verified_name || undefined)}
+                        {verificationSection("AML / PEP Screening", amlBadge(selectedKyb.aml_status), selectedKyb.aml_screened_at || undefined)}
+                      </>)}
 
                       {/* Personal details */}
                       {activeTab === "personal" && selectedKyc && (
@@ -559,10 +570,7 @@ export default function CustomersClient({
                                   <p className="text-sm font-mono text-white">{txn.transaction_ref}</p>
                                   <p className="text-xs text-slate-500">${Number(txn.total_value).toLocaleString()} {txn.currency}</p>
                                 </div>
-                                <span className={"text-xs font-medium border rounded-full px-3 py-1 " +
-                                  (txn.status === "complete" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
-                                   txn.status === "active" ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
-                                   "text-slate-400 border-slate-500/30 bg-slate-500/10")}>
+                                <span className={"text-xs font-medium border rounded-full px-3 py-1 " + (txn.status === "complete" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" : txn.status === "active" ? "text-amber-400 border-amber-500/30 bg-amber-500/10" : "text-slate-400 border-slate-500/30 bg-slate-500/10")}>
                                   {txn.status}
                                 </span>
                               </div>
@@ -593,9 +601,7 @@ export default function CustomersClient({
                         </div>
                         {activeNotes && <p className="text-xs text-slate-400 italic">{activeNotes}</p>}
                         {(activeTab === "personal" ? selectedKyc?.risk_updated_at : selectedKyb?.risk_updated_at) && (
-                          <p className="text-xs text-slate-600 mt-2">
-                            Last updated: {new Date((activeTab === "personal" ? selectedKyc?.risk_updated_at : selectedKyb?.risk_updated_at) || "").toLocaleDateString("en-GB")}
-                          </p>
+                          <p className="text-xs text-slate-600 mt-2">Last updated: {new Date((activeTab === "personal" ? selectedKyc?.risk_updated_at : selectedKyb?.risk_updated_at) || "").toLocaleDateString("en-GB")}</p>
                         )}
                       </div>
 
@@ -605,17 +611,13 @@ export default function CustomersClient({
                           <div className="flex gap-2">
                             {(["low", "medium", "high"] as const).map(r => (
                               <button key={r} onClick={() => setNewRiskRating(r)}
-                                className={"flex-1 rounded-xl py-2.5 text-sm font-semibold transition capitalize " +
-                                  (newRiskRating === r
-                                    ? (r === "high" ? "bg-red-500 text-white" : r === "medium" ? "bg-amber-400 text-slate-950" : "bg-emerald-500 text-white")
-                                    : "border border-white/10 text-slate-400 hover:text-white")}>
+                                className={"flex-1 rounded-xl py-2.5 text-sm font-semibold transition capitalize " + (newRiskRating === r ? (r === "high" ? "bg-red-500 text-white" : r === "medium" ? "bg-amber-400 text-slate-950" : "bg-emerald-500 text-white") : "border border-white/10 text-slate-400 hover:text-white")}>
                                 {r}
                               </button>
                             ))}
                           </div>
                           <textarea value={newRiskNotes} onChange={e => setNewRiskNotes(e.target.value)}
-                            placeholder="Reason for risk rating change (optional)..."
-                            rows={3}
+                            placeholder="Reason for risk rating change (optional)..." rows={3}
                             className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400/50 resize-none" />
                           <div className="flex gap-3">
                             <button onClick={handleSaveRisk} disabled={savingRisk || !newRiskRating}
@@ -644,20 +646,15 @@ export default function CustomersClient({
                   {/* EDD TAB */}
                   {detailTab === "edd" && (
                     <div className="flex flex-col gap-4">
-
                       {!hasActiveEdd && !showEddForm && (
                         <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center">
                           <p className="text-sm text-slate-400 mb-3">No active EDD requests for this customer.</p>
-                          <button onClick={() => setShowEddForm(true)}
-                            className="rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-amber-300 transition">
-                            Flag for EDD →
-                          </button>
+                          <button onClick={() => setShowEddForm(true)} className="rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-amber-300 transition">Flag for EDD →</button>
                         </div>
                       )}
 
                       {hasActiveEdd && !showEddForm && (
-                        <button onClick={() => setShowEddForm(true)}
-                          className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-2.5 text-sm font-semibold text-amber-400 hover:bg-amber-500/20 transition">
+                        <button onClick={() => setShowEddForm(true)} className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-2.5 text-sm font-semibold text-amber-400 hover:bg-amber-500/20 transition">
                           + New EDD Request
                         </button>
                       )}
@@ -670,9 +667,7 @@ export default function CustomersClient({
                           </div>
                           <div>
                             <label className="text-xs text-slate-400 mb-1.5 block">Reason for EDD <span className="text-amber-400">*</span></label>
-                            <textarea value={eddReason} onChange={e => setEddReason(e.target.value)}
-                              placeholder="Explain why EDD is required for this customer..."
-                              rows={3}
+                            <textarea value={eddReason} onChange={e => setEddReason(e.target.value)} placeholder="Explain why EDD is required..." rows={3}
                               className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400/50 resize-none" />
                           </div>
                           <div>
@@ -691,9 +686,7 @@ export default function CustomersClient({
                           </div>
                           <div>
                             <label className="text-xs text-slate-400 mb-1.5 block">Internal Notes (optional)</label>
-                            <textarea value={eddNotes} onChange={e => setEddNotes(e.target.value)}
-                              placeholder="Internal compliance notes..."
-                              rows={2}
+                            <textarea value={eddNotes} onChange={e => setEddNotes(e.target.value)} placeholder="Internal compliance notes..." rows={2}
                               className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400/50 resize-none" />
                           </div>
                           <button onClick={handleSubmitEdd} disabled={submittingEdd || !eddReason.trim()}
@@ -703,7 +696,6 @@ export default function CustomersClient({
                         </div>
                       )}
 
-                      {/* EDD requests list */}
                       {activeEdd.length > 0 && (
                         <div className="flex flex-col gap-3">
                           <p className="text-xs text-slate-500 uppercase tracking-wider">EDD History</p>
@@ -762,6 +754,3 @@ export default function CustomersClient({
     </main>
   );
 }
-
-
-
