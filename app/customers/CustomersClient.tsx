@@ -24,6 +24,9 @@ interface KycProfile {
   nin_verification_status?: string;
   nin_verified_name?: string;
   nin_verified_at?: string;
+  govt_id_verification_status?: string;
+  govt_id_verified_name?: string;
+  govt_id_verified_at?: string;
   aml_status?: string;
   aml_screened_at?: string;
   liveness_status?: string;
@@ -114,6 +117,13 @@ const ninBadge = (status?: string) => {
   return { color: "bg-slate-500/20 text-slate-400", label: "NIN Unverified" };
 };
 
+const govtIdBadge = (status?: string) => {
+  if (status === "verified") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ ID Verified" };
+  if (status === "mismatch") return { color: "bg-red-500/20 text-red-400", label: "⚠ ID Mismatch" };
+  if (status === "failed") return { color: "bg-red-500/20 text-red-400", label: "✕ ID Failed" };
+  return { color: "bg-slate-500/20 text-slate-400", label: "ID Unverified" };
+};
+
 const cacBadge = (status?: string) => {
   if (status === "verified") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ CAC Verified" };
   if (status === "mismatch") return { color: "bg-red-500/20 text-red-400", label: "⚠ CAC Mismatch" };
@@ -125,6 +135,18 @@ const amlBadge = (status?: string) => {
   if (status === "clear") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ AML Clear" };
   if (status === "flagged") return { color: "bg-red-500/20 text-red-400", label: "⚠ AML Flagged" };
   return { color: "bg-slate-500/20 text-slate-400", label: "Not Screened" };
+};
+
+const livenessBadge = (status?: string) => {
+  if (status === "passed") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ Liveness Passed" };
+  if (status === "failed") return { color: "bg-red-500/20 text-red-400", label: "✕ Liveness Failed" };
+  return { color: "bg-slate-500/20 text-slate-400", label: "Not Checked" };
+};
+
+const faceMatchBadge = (status?: string) => {
+  if (status === "matched") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ Face Matched" };
+  if (status === "mismatch") return { color: "bg-red-500/20 text-red-400", label: "✕ Face Mismatch" };
+  return { color: "bg-slate-500/20 text-slate-400", label: "Not Checked" };
 };
 
 const eddStatusColor: Record<string, string> = {
@@ -263,7 +285,13 @@ export default function CustomersClient({
     setEddDocs(prev => prev.includes(doc) ? prev.filter(d => d !== doc) : [...prev, doc]);
   }
 
-  function verificationSection(label: string, badge: { color: string; label: string }, verifiedAt?: string, verifiedName?: string, extra?: string) {
+  function verificationSection(
+    label: string,
+    badge: { color: string; label: string },
+    verifiedAt?: string,
+    verifiedName?: string,
+    extra?: string
+  ) {
     return (
       <div>
         <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">{label}</p>
@@ -362,9 +390,10 @@ export default function CustomersClient({
                         {eddCount > 0 && <span className="text-xs font-medium rounded-full px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30">EDD Active</span>}
                       </div>
                     </div>
-                    <div className="flex gap-3 flex-wrap text-xs">
+                    <div className="flex gap-2 flex-wrap text-xs">
                       <span className={bvn.color + " rounded-full px-2 py-0.5"}>{bvn.label}</span>
                       <span className={ninBadge(p.nin_verification_status).color + " rounded-full px-2 py-0.5"}>{ninBadge(p.nin_verification_status).label}</span>
+                      <span className={govtIdBadge(p.govt_id_verification_status).color + " rounded-full px-2 py-0.5"}>{govtIdBadge(p.govt_id_verification_status).label}</span>
                       <span className={amlBadge(p.aml_status).color + " rounded-full px-2 py-0.5"}>{amlBadge(p.aml_status).label}</span>
                       <span className="text-emerald-400">{docStats.approved} approved</span>
                       {docStats.pending > 0 && <span className="text-amber-400">{docStats.pending} pending</span>}
@@ -399,7 +428,7 @@ export default function CustomersClient({
                         {eddCount > 0 && <span className="text-xs font-medium rounded-full px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30">EDD Active</span>}
                       </div>
                     </div>
-                    <div className="flex gap-3 flex-wrap text-xs">
+                    <div className="flex gap-2 flex-wrap text-xs">
                       <span className={cacBadge(p.cac_verification_status).color + " rounded-full px-2 py-0.5"}>{cacBadge(p.cac_verification_status).label}</span>
                       <span className={amlBadge(p.aml_status).color + " rounded-full px-2 py-0.5"}>{amlBadge(p.aml_status).label}</span>
                       <span className="text-emerald-400">{docStats.approved} approved</span>
@@ -465,9 +494,10 @@ export default function CustomersClient({
                       {activeTab === "personal" && selectedKyc && (<>
                         {verificationSection("BVN Verification", bvnBadge(selectedKyc.bvn_verification_status), selectedKyc.bvn_verified_at || undefined, selectedKyc.bvn_verified_name || undefined, selectedKyc.bvn_verified_dob ? "DOB on record: " + selectedKyc.bvn_verified_dob : undefined)}
                         {verificationSection("NIN Verification", ninBadge(selectedKyc.nin_verification_status), selectedKyc.nin_verified_at || undefined, selectedKyc.nin_verified_name || undefined)}
+                        {verificationSection("Government ID", govtIdBadge(selectedKyc.govt_id_verification_status), selectedKyc.govt_id_verified_at || undefined, selectedKyc.govt_id_verified_name || undefined, selectedKyc.id_type || undefined)}
                         {verificationSection("AML / PEP Screening", amlBadge(selectedKyc.aml_status), selectedKyc.aml_screened_at || undefined)}
-                        {verificationSection("Liveness Check", selectedKyc.liveness_status === "passed" ? { color: "bg-emerald-500/20 text-emerald-400", label: "✓ Liveness Passed" } : selectedKyc.liveness_status === "failed" ? { color: "bg-red-500/20 text-red-400", label: "✕ Liveness Failed" } : { color: "bg-slate-500/20 text-slate-400", label: "Not Checked" }, selectedKyc.liveness_checked_at || undefined, selectedKyc.liveness_probability ? "Confidence: " + (Number(selectedKyc.liveness_probability) * 100).toFixed(1) + "%" : undefined)}
-        {verificationSection("Face Match", selectedKyc.face_match_status === "matched" ? { color: "bg-emerald-500/20 text-emerald-400", label: "✓ Face Matched" } : selectedKyc.face_match_status === "mismatch" ? { color: "bg-red-500/20 text-red-400", label: "✕ Face Mismatch" } : { color: "bg-slate-500/20 text-slate-400", label: "Not Checked" }, selectedKyc.face_match_checked_at || undefined, selectedKyc.face_match_confidence ? "Confidence: " + Number(selectedKyc.face_match_confidence).toFixed(1) + "%" : undefined)}
+                        {verificationSection("Liveness Check", livenessBadge(selectedKyc.liveness_status), selectedKyc.liveness_checked_at || undefined, undefined, selectedKyc.liveness_probability ? "Confidence: " + (Number(selectedKyc.liveness_probability) * 100).toFixed(1) + "%" : undefined)}
+                        {verificationSection("Face Match", faceMatchBadge(selectedKyc.face_match_status), selectedKyc.face_match_checked_at || undefined, undefined, selectedKyc.face_match_confidence ? "Confidence: " + Number(selectedKyc.face_match_confidence).toFixed(1) + "%" : undefined)}
                       </>)}
 
                       {/* Business verification sections */}
