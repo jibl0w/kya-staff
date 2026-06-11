@@ -510,6 +510,7 @@ export default function CustomersClient({
                       {/* Business verification sections */}
                       {activeTab === "business" && selectedKyb && (<>
                         {verificationSection("CAC Verification", cacBadge(selectedKyb.cac_verification_status), selectedKyb.cac_verified_at || undefined, selectedKyb.cac_verified_name || undefined)}
+                        {verificationSection("TIN Verification", tinBadge(selectedKyb.tin_verification_status), selectedKyb.tin_verified_at || undefined, selectedKyb.tin_verified_name || undefined)}
                         {verificationSection("AML / PEP Screening", amlBadge(selectedKyb.aml_status), selectedKyb.aml_screened_at || undefined)}
                       </>)}
 
