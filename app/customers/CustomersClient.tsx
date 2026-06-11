@@ -124,6 +124,13 @@ const govtIdBadge = (status?: string) => {
   return { color: "bg-slate-500/20 text-slate-400", label: "ID Unverified" };
 };
 
+const tinBadge = (status?: string) => {
+  if (status === "verified") return { color: "bg-emerald-500/20 text-emerald-400", label: "? TIN Verified" };
+  if (status === "mismatch") return { color: "bg-red-500/20 text-red-400", label: "? TIN Mismatch" };
+  if (status === "failed") return { color: "bg-red-500/20 text-red-400", label: "? TIN Failed" };
+  return { color: "bg-slate-500/20 text-slate-400", label: "TIN Unverified" };
+};
+
 const cacBadge = (status?: string) => {
   if (status === "verified") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ CAC Verified" };
   if (status === "mismatch") return { color: "bg-red-500/20 text-red-400", label: "⚠ CAC Mismatch" };
@@ -792,3 +799,5 @@ export default function CustomersClient({
     </main>
   );
 }
+
+
