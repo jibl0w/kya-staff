@@ -57,6 +57,9 @@ interface KybProfile {
   cac_verification_status?: string;
   cac_verified_name?: string;
   cac_verified_at?: string;
+  tin_verification_status?: string;
+  tin_verified_name?: string;
+  tin_verified_at?: string;
   aml_status?: string;
   aml_screened_at?: string;
   risk_rating?: string;
