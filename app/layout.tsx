@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translacent",
+    statusBarStyle: "black-translucent",
     title: "KYA Staff",
   },
   icons: {
