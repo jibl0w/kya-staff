@@ -33,7 +33,14 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      domain="kya.com.ng"
+      isSatellite={true}
+      signInUrl="https://accounts.kya.com.ng/sign-in"
+      signUpUrl="https://accounts.kya.com.ng/sign-up"
+      afterSignInUrl="/customers"
+      afterSignOutUrl="https://accounts.kya.com.ng/sign-in"
+    >
       <html lang="en">
         <head>
           <link rel="manifest" href="/manifest.json" />
