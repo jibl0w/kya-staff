@@ -31,6 +31,8 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
+const isDevelopment = process.env.NEXT_PUBLIC_APP_ENV === "development";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider
@@ -53,6 +55,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <meta name="msapplication-TileColor" content="#C9A84C" />
         </head>
         <body className="min-h-screen bg-slate-950 text-white antialiased">
+          {isDevelopment && (
+            <div style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 9999,
+              background: "#f59e0b",
+              color: "#0D1420",
+              textAlign: "center",
+              fontSize: "11px",
+              fontWeight: "700",
+              fontFamily: "Arial, sans-serif",
+              letterSpacing: "2px",
+              padding: "4px 0",
+              textTransform: "uppercase",
+            }}>
+              ⚠ DEVELOPMENT ENVIRONMENT — NOT FOR LIVE USE
+            </div>
+          )}
           {children}
           <StaffInstallBanner />
           <script
