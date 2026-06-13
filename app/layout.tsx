@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "black-translacent",
     title: "KYA Staff",
   },
   icons: {
@@ -38,7 +38,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       isSatellite={true}
       signInUrl="https://accounts.kya.com.ng/sign-in"
       signUpUrl="https://accounts.kya.com.ng/sign-up"
-      afterSignInUrl="/customers"
       afterSignOutUrl="https://accounts.kya.com.ng/sign-in"
     >
       <html lang="en">
