@@ -1,6 +1,16 @@
 import { SignIn } from "@clerk/nextjs";
+import { redirect } from "next/navigation";
+
+const isSatellite = process.env.NEXT_PUBLIC_IS_SATELLITE === "true";
 
 export default function SignInPage() {
+  // On the production satellite, sign-in must happen on the primary domain (Account Portal).
+  // Clerk forbids rendering <SignIn /> on a satellite origin.
+  if (isSatellite) {
+    redirect("https://accounts.kya.com.ng/sign-in?redirect_url=https://staff.kya.ng/");
+  }
+
+  // On development (non-satellite), render the sign-in form locally.
   return (
     <main className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4">
       <div className="mb-8 text-center">
