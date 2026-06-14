@@ -42,6 +42,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         isSatellite: true,
         signInUrl: "https://accounts.kya.com.ng/sign-in",
         signUpUrl: "https://accounts.kya.com.ng/sign-up",
+        signInFallbackRedirectUrl: "https://staff.kya.ng/",
+        signUpFallbackRedirectUrl: "https://staff.kya.ng/",
         afterSignOutUrl: "https://accounts.kya.com.ng/sign-in",
       } : {
         signInUrl: "/sign-in",
