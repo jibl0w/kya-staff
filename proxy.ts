@@ -7,18 +7,20 @@ const isPublicRoute = createRouteMatcher([
   "/unauthorised",
 ]);
 
-const ADMIN_IDS = (process.env.ADMIN_USER_IDS || "").split(",").map(id => id.trim());
-const isSatellite = process.env.NEXT_PUBLIC_IS_SATELLITE === "true";
+// Built-in super-admin fallback (Phase 1 bootstrap; replaced by RBAC in Phase 5).
+const FALLBACK_ADMIN_IDS = ["user_3F5CZYO6zsPEbBW92FXPTOO1p3m"];
+
+const ENV_ADMIN_IDS = (process.env.ADMIN_USER_IDS || "")
+  .split(",")
+  .map(id => id.trim())
+  .filter(Boolean);
+
+const ADMIN_IDS = Array.from(new Set([...FALLBACK_ADMIN_IDS, ...ENV_ADMIN_IDS]));
 
 export default clerkMiddleware(async (auth, req) => {
   if (isPublicRoute(req)) return NextResponse.next();
   const { userId } = await auth();
   if (!userId) {
-    if (isSatellite) {
-      const signInUrl = new URL("https://accounts.kya.com.ng/sign-in");
-      signInUrl.searchParams.set("redirect_url", req.url);
-      return NextResponse.redirect(signInUrl);
-    }
     return NextResponse.redirect(new URL("/sign-in", req.url));
   }
   if (!ADMIN_IDS.includes(userId)) {
