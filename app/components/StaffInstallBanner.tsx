@@ -7,20 +7,27 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+const DISMISS_KEY = "kya-staff-pwa-dismissed";
+
 export default function StaffInstallBanner() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showBanner, setShowBanner] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    if (window.matchMedia("(display-mode: standalone)").matches) {
-      setIsInstalled(true);
-      return;
-    }
+    // Already installed → never show
+    if (window.matchMedia("(display-mode: standalone)").matches) return;
+    if ((window.navigator as unknown as { standalone?: boolean }).standalone) return;
 
-    const ios = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+    // Previously dismissed or installed on this device → never show again
+    if (localStorage.getItem(DISMISS_KEY)) return;
+
+    // Mobile only
+    const ua = window.navigator.userAgent.toLowerCase();
+    const isMobile = /iphone|ipad|ipod|android/.test(ua);
+    if (!isMobile) return;
+
+    const ios = /iphone|ipad|ipod/.test(ua);
     setIsIOS(ios);
 
     const handler = (e: Event) => {
@@ -28,28 +35,40 @@ export default function StaffInstallBanner() {
       setInstallPrompt(e as BeforeInstallPromptEvent);
       setShowBanner(true);
     };
-
     window.addEventListener("beforeinstallprompt", handler);
 
+    const installedHandler = () => {
+      localStorage.setItem(DISMISS_KEY, "true");
+      setShowBanner(false);
+    };
+    window.addEventListener("appinstalled", installedHandler);
+
+    let iosTimer: ReturnType<typeof setTimeout> | undefined;
     if (ios) {
-      setTimeout(() => setShowBanner(true), 1000);
+      iosTimer = setTimeout(() => setShowBanner(true), 2000);
     }
 
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      window.removeEventListener("appinstalled", installedHandler);
+      if (iosTimer) clearTimeout(iosTimer);
+    };
   }, []);
 
   async function handleInstall() {
-    if (installPrompt) {
-      await installPrompt.prompt();
-      const result = await installPrompt.userChoice;
-      if (result.outcome === "accepted") {
-        setShowBanner(false);
-        setIsInstalled(true);
-      }
-    }
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    await installPrompt.userChoice;
+    localStorage.setItem(DISMISS_KEY, "true");
+    setShowBanner(false);
   }
 
-  if (!showBanner || isInstalled || dismissed) return null;
+  function handleDismiss() {
+    localStorage.setItem(DISMISS_KEY, "true");
+    setShowBanner(false);
+  }
+
+  if (!showBanner) return null;
 
   return (
     <div style={{
@@ -108,7 +127,7 @@ export default function StaffInstallBanner() {
           </button>
         )}
 
-        <button onClick={() => setDismissed(true)} style={{
+        <button onClick={handleDismiss} style={{
           background: "transparent", border: "none",
           color: "#4A5568", fontSize: "13px",
           cursor: "pointer", padding: "8px",
