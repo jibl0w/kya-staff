@@ -32,24 +32,14 @@ export const viewport: Viewport = {
 };
 
 const isDevelopment = process.env.NEXT_PUBLIC_APP_ENV === "development";
-const isSatellite = process.env.NEXT_PUBLIC_IS_SATELLITE === "true";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider
-      {...(isSatellite ? {
-        domain: "kya.com.ng",
-        isSatellite: true,
-        signInUrl: "https://staff.kya.ng/sign-in",
-        signUpUrl: "https://staff.kya.ng/sign-in",
-        signInFallbackRedirectUrl: "https://staff.kya.ng/",
-        signUpFallbackRedirectUrl: "https://staff.kya.ng/",
-        afterSignOutUrl: "https://staff.kya.ng/sign-in",
-      } : {
-        signInUrl: "/sign-in",
-        signUpUrl: "/sign-up",
-        afterSignOutUrl: "/sign-in",
-      })}
+      signInUrl="/sign-in"
+      signUpUrl="/sign-in"
+      signInFallbackRedirectUrl="/"
+      afterSignOutUrl="/sign-in"
     >
       <html lang="en">
         <head>

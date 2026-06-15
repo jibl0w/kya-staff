@@ -7,7 +7,10 @@ const isPublicRoute = createRouteMatcher([
   "/unauthorised",
 ]);
 
-const ADMIN_IDS = (process.env.ADMIN_USER_IDS || "").split(",").map(id => id.trim());
+const ADMIN_IDS = (process.env.ADMIN_USER_IDS || "")
+  .split(",")
+  .map(id => id.trim())
+  .filter(Boolean);
 
 export default clerkMiddleware(async (auth, req) => {
   if (isPublicRoute(req)) return NextResponse.next();
@@ -15,7 +18,7 @@ export default clerkMiddleware(async (auth, req) => {
   if (!userId) {
     return NextResponse.redirect(new URL("/sign-in", req.url));
   }
-  if (!ADMIN_IDS.includes(userId)) {
+  if (ADMIN_IDS.length > 0 && !ADMIN_IDS.includes(userId)) {
     return NextResponse.redirect(new URL("/unauthorised", req.url));
   }
   return NextResponse.next();
