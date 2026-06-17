@@ -88,9 +88,6 @@ export default async function StaffDashboard() {
           <span className="rounded-full bg-amber-400/10 border border-amber-400/20 px-3 py-0.5 text-xs font-medium text-amber-400">Staff Portal</span>
         </div>
         <nav className="flex items-center gap-6">
-          <Link href="/audit" className="text-sm text-slate-400 hover:text-white transition">Audit Log</Link>
-          <Link href="/suppliers" className="text-sm text-slate-400 hover:text-white transition">Suppliers</Link>
-          <Link href="/audit" className="text-sm text-slate-400 hover:text-white transition">Audit Log</Link>
           <Link href="/" className="text-sm font-medium text-white border-b-2 border-amber-400 pb-0.5">Dashboard</Link>
           <Link href="/documents" className="text-sm text-slate-400 hover:text-white transition relative">
             Documents
@@ -101,7 +98,10 @@ export default async function StaffDashboard() {
             )}
           </Link>
           <Link href="/transactions" className="text-sm text-slate-400 hover:text-white transition">Transactions</Link>
+          <Link href="/payments" className="text-sm text-slate-400 hover:text-white transition">Payments</Link>
           <Link href="/customers" className="text-sm text-slate-400 hover:text-white transition">Customers</Link>
+          <Link href="/suppliers" className="text-sm text-slate-400 hover:text-white transition">Suppliers</Link>
+          <Link href="/audit" className="text-sm text-slate-400 hover:text-white transition">Audit Log</Link>
         </nav>
         <div className="flex items-center gap-3">
           <div className="text-right">
@@ -130,7 +130,7 @@ export default async function StaffDashboard() {
             <div className="flex items-center gap-3">
               <div className="h-2 w-2 rounded-full bg-red-400 animate-pulse flex-shrink-0" />
               <div>
-                <p className="font-semibold text-red-400">⚠ {flagged.length} transaction{flagged.length > 1 ? "s" : ""} flagged by monitoring</p>
+                <p className="font-semibold text-red-400">{flagged.length} transaction{flagged.length > 1 ? "s" : ""} flagged by monitoring</p>
                 <p className="text-xs text-slate-400 mt-0.5">High value or suspicious transactions require compliance review</p>
               </div>
             </div>
@@ -243,8 +243,9 @@ export default async function StaffDashboard() {
             <div className="flex flex-col gap-3">
               {[
                 { label: "Review Pending Documents", href: "/documents", color: "bg-amber-400 text-slate-950 hover:bg-amber-300", badge: totalPending > 0 ? totalPending : null },
-                { label: "Manage Transactions", href: "/transactions", color: "border border-white/10 text-white hover:bg-white/5" },
-                { label: "View Customers", href: "/customers", color: "border border-white/10 text-white hover:bg-white/5" },
+                { label: "Manage Transactions", href: "/transactions", color: "border border-white/10 text-white hover:bg-white/5", badge: null },
+                { label: "Payments Monitoring", href: "/payments", color: "border border-white/10 text-white hover:bg-white/5", badge: null },
+                { label: "View Customers", href: "/customers", color: "border border-white/10 text-white hover:bg-white/5", badge: null },
               ].map(action => (
                 <Link key={action.label} href={action.href}
                   className={"rounded-xl px-4 py-3 text-sm font-medium transition flex items-center justify-between " + action.color}>
@@ -292,7 +293,7 @@ export default async function StaffDashboard() {
                       </span>
                       {txn.risk_flag && (
                         <span className="text-xs font-medium border rounded-full px-2 py-0.5 text-red-400 border-red-500/30 bg-red-500/10">
-                          ⚠ Flagged
+                          Flagged
                         </span>
                       )}
                     </div>
