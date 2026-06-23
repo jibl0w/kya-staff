@@ -98,6 +98,8 @@ interface Props {
   documents: Doc[];
   transactions: Txn[];
   eddRequests: EddRequest[];
+  eddRequests: EddRequest[];
+  selfieUrls?: Record<string, string>;
 }
 
 const riskColor = (rating?: string) => {
@@ -189,7 +191,7 @@ const EDD_DOCUMENT_OPTIONS = [
 ];
 
 export default function CustomersClient({
-  kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddRequests = []
+kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddRequests = [], selfieUrls = {}
 }: Props) {
   const [activeTab, setActiveTab] = useState<"personal" | "business">("personal");
   const [search, setSearch] = useState("");
@@ -508,6 +510,24 @@ export default function CustomersClient({
                         {verificationSection("AML / PEP Screening", amlBadge(selectedKyc.aml_status), selectedKyc.aml_screened_at || undefined)}
                         {verificationSection("Liveness Check", livenessBadge(selectedKyc.liveness_status), selectedKyc.liveness_checked_at || undefined, undefined, selectedKyc.liveness_probability ? "Confidence: " + (Number(selectedKyc.liveness_probability) * 100).toFixed(1) + "%" : undefined)}
                         {verificationSection("Face Match", faceMatchBadge(selectedKyc.face_match_status), selectedKyc.face_match_checked_at || undefined, undefined, selectedKyc.face_match_confidence ? "Confidence: " + Number(selectedKyc.face_match_confidence).toFixed(1) + "%" : undefined)}
+                        {selfieUrls[selectedKyc.user_id] && (
+                          <div>
+                            <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Verified Selfie (Liveness)</p>
+                            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                              <img src={selfieUrls[selectedKyc.user_id]} alt="Verified selfie" className="w-40 h-40 rounded-xl object-cover border border-white/10" />
+                              <p className="text-xs text-slate-600 mt-2">Captured during Dojah liveness verification.</p>
+                            </div>
+                          </div>
+                        )}
+                        {selfieUrls[selectedKyb.user_id] && (
+                          <div>
+                            <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Director Verified Selfie (Liveness)</p>
+                            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                              <img src={selfieUrls[selectedKyb.user_id]} alt="Director verified selfie" className="w-40 h-40 rounded-xl object-cover border border-white/10" />
+                              <p className="text-xs text-slate-600 mt-2">Captured during Dojah liveness verification.</p>
+                            </div>
+                          </div>
+                        )}
                       </>)}
 
                       {/* Business verification sections */}
