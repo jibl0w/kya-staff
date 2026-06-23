@@ -98,7 +98,6 @@ interface Props {
   documents: Doc[];
   transactions: Txn[];
   eddRequests: EddRequest[];
-  eddRequests: EddRequest[];
   selfieUrls?: Record<string, string>;
 }
 
@@ -107,7 +106,6 @@ const riskColor = (rating?: string) => {
   if (rating === "medium") return "bg-amber-500/20 text-amber-400 border border-amber-500/30";
   return "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
 };
-
 const bvnBadge = (status?: string) => {
   if (status === "verified") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ BVN Verified" };
   if (status === "mismatch") return { color: "bg-red-500/20 text-red-400", label: "⚠ BVN Mismatch" };
