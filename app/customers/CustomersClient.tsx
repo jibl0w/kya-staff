@@ -107,6 +107,7 @@ const riskColor = (rating?: string) => {
   return "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
 };
 const bvnBadge = (status?: string) => {
+
   if (status === "verified") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ BVN Verified" };
   if (status === "mismatch") return { color: "bg-red-500/20 text-red-400", label: "⚠ BVN Mismatch" };
   if (status === "failed") return { color: "bg-red-500/20 text-red-400", label: "✕ BVN Failed" };
@@ -517,7 +518,7 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
                             </div>
                           </div>
                         )}
-                        {selfieUrls[selectedKyb.user_id] && (
+                        {selectedKyb && selfieUrls[selectedKyb.user_id] && (
                           <div>
                             <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Director Verified Selfie (Liveness)</p>
                             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
