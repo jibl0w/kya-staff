@@ -24,9 +24,10 @@ export default async function CustomersPage() {
     supabaseServer.from("edd_requests").select("*").order("created_at", { ascending: false }),
   ]);
 
-  // Generate signed URLs for re-hosted selfie evidence (private bucket).
+  // Generate signed URLs for re-hosted verification evidence (private bucket).
   // Maps user_id -> temporary viewable URL. Valid 1 hour; regenerated each load.
   const selfieUrls: Record<string, string> = {};
+  const idDocUrls: Record<string, string> = {};
   const allProfiles = [...(kycProfiles || []), ...(kybProfiles || [])];
   await Promise.all(
     allProfiles.map(async (p: any) => {
@@ -35,6 +36,12 @@ export default async function CustomersPage() {
           .from(EVIDENCE_BUCKET)
           .createSignedUrl(p.selfie_url, 3600);
         if (data?.signedUrl) selfieUrls[p.user_id] = data.signedUrl;
+      }
+      if (p.id_document_url && !p.id_document_url.startsWith("http")) {
+        const { data } = await supabaseServer.storage
+          .from(EVIDENCE_BUCKET)
+          .createSignedUrl(p.id_document_url, 3600);
+        if (data?.signedUrl) idDocUrls[p.user_id] = data.signedUrl;
       }
     })
   );
@@ -47,6 +54,7 @@ export default async function CustomersPage() {
       transactions={transactions || []}
       eddRequests={eddRequests || []}
       selfieUrls={selfieUrls}
+      idDocUrls={idDocUrls}
     />
   );
 }

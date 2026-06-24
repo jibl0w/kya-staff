@@ -99,6 +99,8 @@ interface Props {
   transactions: Txn[];
   eddRequests: EddRequest[];
   selfieUrls?: Record<string, string>;
+  selfieUrls?: Record<string, string>;
+  idDocUrls?: Record<string, string>;
 }
 
 const riskColor = (rating?: string) => {
@@ -190,7 +192,7 @@ const EDD_DOCUMENT_OPTIONS = [
 ];
 
 export default function CustomersClient({
-kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddRequests = [], selfieUrls = {}
+kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddRequests = [], selfieUrls = {}, idDocUrls = {}
 }: Props) {
   const [activeTab, setActiveTab] = useState<"personal" | "business">("personal");
   const [search, setSearch] = useState("");
@@ -528,13 +530,35 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
                           </div>
                         )}
                       </>)}
+                      </div>
+                        )}
+                        {idDocUrls[selectedKyc.user_id] && (
+                          <div>
+                            <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Verified ID Document</p>
+                            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                              <img src={idDocUrls[selectedKyc.user_id]} alt="Verified ID document" className="w-full max-w-xs rounded-xl object-contain border border-white/10" />
+                              <p className="text-xs text-slate-600 mt-2">Captured during Dojah ID verification.</p>
+                            </div>
+                          </div>
+                        )}
+                      </>)}
 
                       {/* Business verification sections */}
                       {activeTab === "business" && selectedKyb && (<>
                         {verificationSection("CAC Verification", cacBadge(selectedKyb.cac_verification_status), selectedKyb.cac_verified_at || undefined, selectedKyb.cac_verified_name || undefined)}
                         {verificationSection("TIN Verification", tinBadge(selectedKyb.tin_verification_status), selectedKyb.tin_verified_at || undefined, selectedKyb.tin_verified_name || undefined)}
                         {verificationSection("AML / PEP Screening", amlBadge(selectedKyb.aml_status), selectedKyb.aml_screened_at || undefined)}
+                        {idDocUrls[selectedKyb.user_id] && (
+                          <div>
+                            <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Director Verified ID Document</p>
+                            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                              <img src={idDocUrls[selectedKyb.user_id]} alt="Director verified ID document" className="w-full max-w-xs rounded-xl object-contain border border-white/10" />
+                              <p className="text-xs text-slate-600 mt-2">Captured during Dojah ID verification.</p>
+                            </div>
+                          </div>
+                        )}
                       </>)}
+                      
 
                       {/* Personal details */}
                       {activeTab === "personal" && selectedKyc && (
