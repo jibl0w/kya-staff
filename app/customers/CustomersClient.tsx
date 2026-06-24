@@ -210,6 +210,9 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
   const [submittingEdd, setSubmittingEdd] = useState(false);
   const [localEdd, setLocalEdd] = useState<EddRequest[]>(eddRequests);
   const [updatingEdd, setUpdatingEdd] = useState<string | null>(null);
+  const [decisionAction, setDecisionAction] = useState<"approve" | "reject" | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [submittingDecision, setSubmittingDecision] = useState(false);
 
   function getDocStatus(uid: string) {
     const docs = documents.filter(d => d.user_id === uid);
@@ -291,6 +294,29 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
       });
       if (res.ok) setLocalEdd(prev => prev.map(e => e.id === eddId ? { ...e, status } : e));
     } finally { setUpdatingEdd(null); }
+  }
+
+  async function handleDecision(action: "approve" | "reject") {
+    if (!selectedUser) return;
+    if (action === "reject" && !rejectReason.trim()) return;
+    setSubmittingDecision(true);
+    try {
+      const res = await fetch("/api/update-kyc-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId: selectedUser, accountType: activeTab, action, rejectionReason: rejectReason }),
+      });
+      if (res.ok) {
+        const newStatus = action === "approve" ? "approved" : "rejected";
+        if (activeTab === "personal") {
+          setLocalKyc(prev => prev.map(p => p.user_id === selectedUser ? { ...p, kyc_status: newStatus } : p));
+        } else {
+          setLocalKyb(prev => prev.map(p => p.user_id === selectedUser ? { ...p, kyb_status: newStatus } : p));
+        }
+        setDecisionAction(null);
+        setRejectReason("");
+      }
+    } finally { setSubmittingDecision(false); }
   }
 
   function toggleEddDoc(doc: string) {
