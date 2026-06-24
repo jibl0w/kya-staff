@@ -149,7 +149,7 @@ const amlBadge = (status?: string) => {
 };
 
 const livenessBadge = (status?: string) => {
-  if (status === "passed") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ Liveness Passed" };
+ if (status === "passed" || status === "completed") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ Liveness Passed" };
   if (status === "failed") return { color: "bg-red-500/20 text-red-400", label: "✕ Liveness Failed" };
   return { color: "bg-slate-500/20 text-slate-400", label: "Not Checked" };
 };
