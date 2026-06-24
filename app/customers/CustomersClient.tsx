@@ -528,6 +528,64 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
                   {/* PROFILE TAB */}
                   {detailTab === "profile" && (
                     <>
+                      {/* Compliance Decision */}
+                      {(() => {
+                        const reviewedStatus = activeTab === "personal" ? selectedKyc?.kyc_status : selectedKyb?.kyb_status;
+                        return (
+                          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                            <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Compliance Decision</p>
+                            <div className="flex items-center gap-3 mb-3">
+                              <span className={"text-sm font-bold px-3 py-1.5 rounded-full " + (statusColor[reviewedStatus || "pending"] || statusColor.pending)}>
+                                {(reviewedStatus || "pending").toUpperCase()}
+                              </span>
+                            </div>
+                            {decisionAction === null && (
+                              <div className="flex gap-2">
+                                <button onClick={() => setDecisionAction("approve")}
+                                  className="flex-1 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400 transition">
+                                  Approve {activeTab === "personal" ? "KYC" : "KYB"}
+                                </button>
+                                <button onClick={() => setDecisionAction("reject")}
+                                  className="flex-1 rounded-xl border border-red-500/30 bg-red-500/10 py-2.5 text-sm font-semibold text-red-400 hover:bg-red-500/20 transition">
+                                  Reject
+                                </button>
+                              </div>
+                            )}
+                            {decisionAction === "approve" && (
+                              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 flex flex-col gap-3">
+                                <p className="text-sm text-emerald-400 font-semibold">Confirm approval?</p>
+                                <p className="text-xs text-slate-400">The customer will be notified that they have passed due diligence. Source and ROECNY will also be notified.</p>
+                                <div className="flex gap-2">
+                                  <button onClick={() => handleDecision("approve")} disabled={submittingDecision}
+                                    className="flex-1 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400 transition disabled:opacity-50">
+                                    {submittingDecision ? "Approving..." : "Confirm Approve"}
+                                  </button>
+                                  <button onClick={() => setDecisionAction(null)}
+                                    className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-400 hover:text-white transition">Cancel</button>
+                                </div>
+                              </div>
+                            )}
+                            {decisionAction === "reject" && (
+                              <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 flex flex-col gap-3">
+                                <p className="text-sm text-red-400 font-semibold">Reason for rejection <span className="text-red-400">*</span></p>
+                                <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)}
+                                  placeholder="Explain the reason, or what additional documents are required..." rows={3}
+                                  className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-red-400/50 resize-none" />
+                                <p className="text-xs text-slate-400">The customer will be notified with this reason.</p>
+                                <div className="flex gap-2">
+                                  <button onClick={() => handleDecision("reject")} disabled={submittingDecision || !rejectReason.trim()}
+                                    className="flex-1 rounded-xl bg-red-500 py-2.5 text-sm font-semibold text-white hover:bg-red-400 transition disabled:opacity-50">
+                                    {submittingDecision ? "Rejecting..." : "Confirm Reject"}
+                                  </button>
+                                  <button onClick={() => { setDecisionAction(null); setRejectReason(""); }}
+                                    className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-400 hover:text-white transition">Cancel</button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
                       {/* Personal verification sections */}
                       {activeTab === "personal" && selectedKyc && (<>
                         {verificationSection("BVN Verification", bvnBadge(selectedKyc.bvn_verification_status), selectedKyc.bvn_verified_at || undefined, selectedKyc.bvn_verified_name || undefined, selectedKyc.bvn_verified_dob ? "DOB on record: " + selectedKyc.bvn_verified_dob : undefined)}
