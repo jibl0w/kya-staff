@@ -29,7 +29,7 @@ export async function POST(req: Request) {
 
   if (formMNumber) updateData.form_m_number = formMNumber;
   if (lcNumber) updateData.lc_number = lcNumber;
-  if (adReference) updateData.ad_reference = adReference;
+  if (adReference) updateData.ad_fx_reference = adReference;
 
   const { error: txnError } = await supabaseServer
     .from("transactions")
