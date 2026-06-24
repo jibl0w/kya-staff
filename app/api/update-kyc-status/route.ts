@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   const kind = isBusiness ? "KYB" : "KYC";
   await writeAuditLog({
     performedBy: userId,
-    actionType: action === "approve" ? "kyc_approved" : "kyc_rejected",
+    actionType: isBusiness ? "kyb_status_updated" : "kyc_status_updated",
     entityType: isBusiness ? "kyb_profile" : "kyc_profile",
     entityId: customerId,
     customerId: customerId,
