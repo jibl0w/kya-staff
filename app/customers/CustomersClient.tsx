@@ -507,7 +507,7 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
                         {verificationSection("NIN Verification", ninBadge(selectedKyc.nin_verification_status), selectedKyc.nin_verified_at || undefined, selectedKyc.nin_verified_name || undefined)}
                         {verificationSection("Government ID", govtIdBadge(selectedKyc.govt_id_verification_status), selectedKyc.govt_id_verified_at || undefined, selectedKyc.govt_id_verified_name || undefined, selectedKyc.id_type || undefined)}
                         {verificationSection("AML / PEP Screening", amlBadge(selectedKyc.aml_status), selectedKyc.aml_screened_at || undefined)}
-                        {verificationSection("Liveness Check", livenessBadge(selectedKyc.liveness_status), selectedKyc.liveness_checked_at || undefined, undefined, selectedKyc.liveness_probability ? "Confidence: " + (Number(selectedKyc.liveness_probability) * 100).toFixed(1) + "%" : undefined)}
+                        {verificationSection("Liveness Check", livenessBadge(selectedKyc.liveness_status), selectedKyc.liveness_checked_at || undefined, undefined, selectedKyc.liveness_probability ? "Confidence: " + (Number(selectedKyc.liveness_probability).toFixed(1) + "%" : undefined)}
                         {verificationSection("Face Match", faceMatchBadge(selectedKyc.face_match_status), selectedKyc.face_match_checked_at || undefined, undefined, selectedKyc.face_match_confidence ? "Confidence: " + Number(selectedKyc.face_match_confidence).toFixed(1) + "%" : undefined)}
                         {selfieUrls[selectedKyc.user_id] && (
                           <div>
