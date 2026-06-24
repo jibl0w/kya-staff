@@ -529,8 +529,7 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
                             </div>
                           </div>
                         )}
-                      </>)}
-                      </div>
+                        </div>
                         )}
                         {idDocUrls[selectedKyc.user_id] && (
                           <div>
@@ -542,6 +541,10 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
                           </div>
                         )}
                       </>)}
+                      
+                        
+                        
+                     
 
                       {/* Business verification sections */}
                       {activeTab === "business" && selectedKyb && (<>
