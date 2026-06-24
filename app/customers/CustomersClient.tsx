@@ -99,7 +99,6 @@ interface Props {
   transactions: Txn[];
   eddRequests: EddRequest[];
   selfieUrls?: Record<string, string>;
-  selfieUrls?: Record<string, string>;
   idDocUrls?: Record<string, string>;
 }
 
@@ -529,8 +528,7 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
                             </div>
                           </div>
                         )}
-                        </div>
-                        )}
+                        
                         {idDocUrls[selectedKyc.user_id] && (
                           <div>
                             <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Verified ID Document</p>
