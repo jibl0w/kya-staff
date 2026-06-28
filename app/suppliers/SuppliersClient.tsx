@@ -221,6 +221,7 @@ export default function SuppliersClient({ suppliers: initialSuppliers }: { suppl
           <Link href="/customers" className="text-sm text-slate-400 hover:text-white transition">Customers</Link>
           <Link href="/suppliers" className="text-sm font-medium text-white border-b-2 border-amber-400 pb-0.5">Suppliers</Link>
           <Link href="/audit" className="text-sm text-slate-400 hover:text-white transition">Audit Log</Link>
+          <Link href="/account" className="text-sm text-slate-400 hover:text-white transition">Account</Link>
         </nav>
       </header>
 

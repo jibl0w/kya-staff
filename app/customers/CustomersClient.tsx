@@ -359,6 +359,7 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
           <Link href="/customers" className="text-sm font-medium text-white border-b-2 border-amber-400 pb-0.5">Customers</Link>
           <Link href="/suppliers" className="text-sm text-slate-400 hover:text-white transition">Suppliers</Link>
           <Link href="/audit" className="text-sm text-slate-400 hover:text-white transition">Audit Log</Link>
+          <Link href="/account" className="text-sm text-slate-400 hover:text-white transition">Account</Link>
         </nav>
       </header>
 
