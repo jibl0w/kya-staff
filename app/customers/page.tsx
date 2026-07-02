@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseServer } from "@/lib/supabase-server";
+import { signDocumentUrls } from "@/lib/signed-url";
 import CustomersClient from "./CustomersClient";
 
 const ADMIN_IDS = process.env.ADMIN_USER_IDS?.split(",") || [];
@@ -16,12 +17,14 @@ export default async function CustomersPage() {
     { data: documents },
     { data: transactions },
     { data: eddRequests },
+    { data: eddDocuments },
   ] = await Promise.all([
     supabaseServer.from("kyc_profiles").select("*"),
     supabaseServer.from("kyb_profiles").select("*"),
     supabaseServer.from("documents").select("user_id, status, verification_status, document_type"),
     supabaseServer.from("transactions").select("user_id, status, total_value, currency, transaction_ref"),
     supabaseServer.from("edd_requests").select("*").order("created_at", { ascending: false }),
+    supabaseServer.from("edd_documents").select("*").order("uploaded_at", { ascending: false }),
   ]);
 
   // Generate signed URLs for re-hosted verification evidence (private bucket).
@@ -46,6 +49,9 @@ export default async function CustomersPage() {
     })
   );
 
+  // Sign EDD document URLs so staff can view what customers uploaded.
+  const signedEddDocuments = await signDocumentUrls(eddDocuments || []);
+
   return (
     <CustomersClient
       kycProfiles={kycProfiles || []}
@@ -53,6 +59,7 @@ export default async function CustomersPage() {
       documents={documents || []}
       transactions={transactions || []}
       eddRequests={eddRequests || []}
+      eddDocuments={signedEddDocuments}
       selfieUrls={selfieUrls}
       idDocUrls={idDocUrls}
     />

@@ -77,6 +77,18 @@ interface EddRequest {
   created_at: string;
 }
 
+interface EddDocument {
+  id: string;
+  edd_request_id: string;
+  user_id: string;
+  document_type: string;
+  file_name: string;
+  file_url: string | null;
+  status: string;
+  rejection_reason?: string;
+  uploaded_at: string;
+}
+
 interface Doc {
   user_id: string;
   status: string;
@@ -98,6 +110,7 @@ interface Props {
   documents: Doc[];
   transactions: Txn[];
   eddRequests: EddRequest[];
+  eddDocuments?: EddDocument[];
   selfieUrls?: Record<string, string>;
   idDocUrls?: Record<string, string>;
 }
@@ -130,9 +143,9 @@ const govtIdBadge = (status?: string) => {
 };
 
 const tinBadge = (status?: string) => {
-  if (status === "verified") return { color: "bg-emerald-500/20 text-emerald-400", label: "? TIN Verified" };
-  if (status === "mismatch") return { color: "bg-red-500/20 text-red-400", label: "? TIN Mismatch" };
-  if (status === "failed") return { color: "bg-red-500/20 text-red-400", label: "? TIN Failed" };
+  if (status === "verified") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ TIN Verified" };
+  if (status === "mismatch") return { color: "bg-red-500/20 text-red-400", label: "⚠ TIN Mismatch" };
+  if (status === "failed") return { color: "bg-red-500/20 text-red-400", label: "✕ TIN Failed" };
   return { color: "bg-slate-500/20 text-slate-400", label: "TIN Unverified" };
 };
 
@@ -191,7 +204,7 @@ const EDD_DOCUMENT_OPTIONS = [
 ];
 
 export default function CustomersClient({
-kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddRequests = [], selfieUrls = {}, idDocUrls = {}
+kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddRequests = [], eddDocuments = [], selfieUrls = {}, idDocUrls = {}
 }: Props) {
   const [activeTab, setActiveTab] = useState<"personal" | "business">("personal");
   const [search, setSearch] = useState("");
@@ -224,6 +237,7 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
 
   function getUserTxns(uid: string) { return transactions.filter(t => t.user_id === uid); }
   function getUserEdd(uid: string) { return localEdd.filter(e => e.user_id === uid); }
+  function getEddDocsForRequest(requestId: string) { return eddDocuments.filter(d => d.edd_request_id === requestId); }
 
   const filteredKyc = localKyc.filter(p =>
     search === "" ? true :
@@ -624,10 +638,6 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
                           </div>
                         )}
                       </>)}
-                      
-                        
-                        
-                     
 
                       {/* Business verification sections */}
                       {activeTab === "business" && selectedKyb && (<>
@@ -644,7 +654,6 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
                           </div>
                         )}
                       </>)}
-                      
 
                       {/* Personal details */}
                       {activeTab === "personal" && selectedKyc && (
@@ -897,6 +906,36 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
                               )}
                               {edd.notes && <p className="text-xs text-slate-500 italic mb-2">{edd.notes}</p>}
                               <p className="text-xs text-slate-600 mb-3">{new Date(edd.created_at).toLocaleDateString("en-GB")}</p>
+                              {(() => {
+                                const uploaded = getEddDocsForRequest(edd.id);
+                                return (
+                                  <div className="mb-3">
+                                    <p className="text-xs text-slate-500 mb-1.5">Documents uploaded by customer:</p>
+                                    {uploaded.length === 0 ? (
+                                      <p className="text-xs text-slate-600 italic">None uploaded yet.</p>
+                                    ) : (
+                                      <div className="flex flex-col gap-1.5">
+                                        {uploaded.map(doc => (
+                                          <div key={doc.id} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                                            <div className="min-w-0">
+                                              <p className="text-xs text-white truncate">{doc.document_type}</p>
+                                              <p className="text-xs text-slate-600 truncate">{doc.file_name}</p>
+                                            </div>
+                                            {doc.file_url ? (
+                                              <a href={doc.file_url} target="_blank" rel="noopener noreferrer"
+                                                className="flex-shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-400 hover:bg-amber-500/20 transition">
+                                                View
+                                              </a>
+                                            ) : (
+                                              <span className="flex-shrink-0 text-xs text-slate-600">Unavailable</span>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                               {["pending", "in_progress"].includes(edd.status) && (
                                 <div className="flex gap-2 flex-wrap">
                                   {edd.status === "pending" && (
@@ -932,5 +971,3 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
     </main>
   );
 }
-
-
