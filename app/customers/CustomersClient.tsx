@@ -14,6 +14,7 @@ interface KycProfile {
   phone?: string;
   email?: string;
   kyc_status?: string;
+  account_status?: string;
   created_at?: string;
   bvn?: string;
   bvn_verification_status?: string;
@@ -53,6 +54,7 @@ interface KybProfile {
   representative_email?: string;
   representative_phone?: string;
   kyb_status?: string;
+  account_status?: string;
   created_at?: string;
   cac_verification_status?: string;
   cac_verified_name?: string;
@@ -438,6 +440,7 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
                         {p.nationality && <p className="text-xs text-slate-500">{p.nationality}</p>}
                       </div>
                       <div className="flex flex-col items-end gap-1.5">
+                        {p.account_status === "deleted" && <span className="text-xs font-medium border rounded-full px-3 py-1 border-red-500/40 bg-red-500/20 text-red-400">Account Closed</span>}
                         <span className={"text-xs font-medium border rounded-full px-3 py-1 " + (statusColor[p.kyc_status || "pending"] || statusColor.pending)}>{p.kyc_status || "pending"}</span>
                         <span className={"text-xs font-medium rounded-full px-2 py-0.5 " + riskColor(p.risk_rating)}>{(p.risk_rating || "low").toUpperCase()}</span>
                         {eddCount > 0 && <span className="text-xs font-medium rounded-full px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30">EDD Active</span>}
@@ -476,6 +479,7 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
                         {p.representative_name && <p className="text-xs text-slate-500">Director: {p.representative_title} {p.representative_name}</p>}
                       </div>
                       <div className="flex flex-col items-end gap-1.5">
+                        {p.account_status === "deleted" && <span className="text-xs font-medium border rounded-full px-3 py-1 border-red-500/40 bg-red-500/20 text-red-400">Account Closed</span>}
                         <span className={"text-xs font-medium border rounded-full px-3 py-1 " + (statusColor[p.kyb_status || "pending"] || statusColor.pending)}>{p.kyb_status || "pending"}</span>
                         <span className={"text-xs font-medium rounded-full px-2 py-0.5 " + riskColor(p.risk_rating)}>{(p.risk_rating || "low").toUpperCase()}</span>
                         {eddCount > 0 && <span className="text-xs font-medium rounded-full px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30">EDD Active</span>}
