@@ -463,13 +463,13 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
                         <p className="text-xs text-slate-500 mb-3">All Steps</p>
                         <div className="flex flex-col gap-1">
                           {getTxnSteps(selectedTxn.id).map(step => (
-                            <div key={step.id} className={"flex items-start gap-3 rounded-lg px-3 py-2.5 " + (step.status === "complete" ? "bg-emerald-500/10" : step.status === "active" ? "bg-amber-500/10" : "bg-white/5 opacity-70")}>
-                              <span className={"flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-mono text-xs font-bold mt-0.5 " + (step.status === "complete" ? "bg-emerald-500 text-slate-950" : step.status === "active" ? "border border-amber-400 text-amber-400" : "border border-white/10 text-slate-600")}>
+                            <div key={step.id} className={"flex items-start gap-3 rounded-lg px-3 py-2.5 " + (step.status === "complete" ? "bg-emerald-500/10" : step.status === "active" ? "bg-amber-500/10" : "bg-white/5")}>
+                              <span className={"flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-mono text-xs font-bold mt-0.5 " + (step.status === "complete" ? "bg-emerald-500 text-slate-950" : step.status === "active" ? "border border-amber-400 text-amber-400" : "border border-white/20 text-slate-300")}>
                                 {step.status === "complete" ? "✓" : String(step.step_number).padStart(2, "0")}
                               </span>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between">
-                                  <span className={"text-xs " + (step.status === "complete" ? "text-emerald-300" : step.status === "active" ? "font-medium text-white" : "text-slate-600")}>{step.step_name}</span>
+                                  <span className={"text-xs " + (step.status === "complete" ? "text-emerald-300" : step.status === "active" ? "font-medium text-white" : "text-slate-300")}>{step.step_name}</span>
                                   {step.status === "active" && <span className="text-xs text-amber-400 flex-shrink-0">Current</span>}
                                   {step.status === "complete" && step.completed_at && <span className="text-xs text-slate-600 flex-shrink-0">{new Date(step.completed_at).toLocaleDateString("en-GB")}</span>}
                                 </div>
