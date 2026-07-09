@@ -110,11 +110,30 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
   const [lcNumber, setLcNumber] = useState("");
   const [adReference, setAdReference] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
   const [activeDetailTab, setActiveDetailTab] = useState<"steps" | "identity" | "documents">("steps");
 
   function getKycProfile(uid: string) { return kycProfiles.find(p => p.user_id === uid) || null; }
   function getKybProfile(uid: string) { return kybProfiles.find(p => p.user_id === uid) || null; }
   function isBusiness(uid: string) { return !!getKybProfile(uid); }
+
+  function getCustomerEmail(uid: string) {
+    const kyc = getKycProfile(uid);
+    if (kyc?.email) return kyc.email;
+    const kyb = getKybProfile(uid);
+    return kyb?.company_email || kyb?.representative_email || "";
+  }
+
+  function matchesSearch(txn: Transaction) {
+    if (search.trim() === "") return true;
+    const q = search.toLowerCase();
+    return (
+      (txn.transaction_ref || "").toLowerCase().includes(q) ||
+      (txn.supplier_name || "").toLowerCase().includes(q) ||
+      getCustomerName(txn.user_id).toLowerCase().includes(q) ||
+      getCustomerEmail(txn.user_id).toLowerCase().includes(q)
+    );
+  }
 
   function getCustomerName(uid: string) {
     const kyc = getKycProfile(uid);
@@ -177,7 +196,7 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
     } finally { setUpdating(false); }
   }
 
-  const filtered = localTxns.filter(t => statusFilter === "all" ? true : t.status === statusFilter);
+  const filtered = localTxns.filter(t => (statusFilter === "all" ? true : t.status === statusFilter) && matchesSearch(t));
   const activeCount = localTxns.filter(t => t.status === "active" || t.status === "draft").length;
   const completeCount = localTxns.filter(t => t.status === "complete").length;
   const flaggedCount = localTxns.filter(t => t.risk_flag).length;
@@ -219,6 +238,12 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
               <p className="text-sm font-medium text-white mt-2">{s.label}</p>
             </div>
           ))}
+        </div>
+
+        <div className="mb-4">
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search by transaction number, supplier, customer name, or email..."
+            className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400/50" />
         </div>
 
         <div className="flex gap-2 mb-6 flex-wrap">
