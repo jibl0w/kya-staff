@@ -223,7 +223,7 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
         <div className="mb-8">
           <p className="text-xs font-medium uppercase tracking-widest text-amber-400 mb-1">Transaction Management</p>
           <h2 className="text-3xl font-black">Manage Transactions</h2>
-          <p className="text-slate-400 mt-1 text-sm">Advance transactions through the 15-step KYA trade process.</p>
+          <p className="text-slate-400 mt-1 text-sm">Advance transactions through the KYA trade process.</p>
         </div>
 
         <div className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-4">
