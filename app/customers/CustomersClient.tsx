@@ -421,7 +421,7 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
             ))}
           </div>
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder={activeTab === "personal" ? "Search by name or email..." : "Search by company, director, or CAC..."}
+            placeholder={activeTab === "personal" ? "Search by name or email..." : activeTab === "business" ? "Search by company, director, or CAC..." : "Search EDD by customer, email, or reason..."}
             className="flex-1 rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400/50" />
         </div>
 
@@ -510,7 +510,12 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
           {activeTab === "edd" && (
             <div className="lg:col-span-2 flex flex-col gap-3">
               {(() => {
-                const queue = localEdd.filter(e => ["pending", "in_progress"].includes(e.status));
+                const q = search.toLowerCase();
+                const queue = localEdd.filter(e => ["pending", "in_progress"].includes(e.status)).filter(e => {
+                  if (q === "") return true;
+                  const cust = getEddCustomer(e.user_id);
+                  return cust.name.toLowerCase().includes(q) || cust.email.toLowerCase().includes(q) || (e.reason || "").toLowerCase().includes(q);
+                });
                 if (queue.length === 0) return (
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center"><p className="text-slate-400">No pending EDD reviews. All caught up.</p></div>
                 );
