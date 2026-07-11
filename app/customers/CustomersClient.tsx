@@ -208,7 +208,7 @@ const EDD_DOCUMENT_OPTIONS = [
 export default function CustomersClient({
 kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddRequests = [], eddDocuments = [], selfieUrls = {}, idDocUrls = {}
 }: Props) {
-  const [activeTab, setActiveTab] = useState<"personal" | "business">("personal");
+  const [activeTab, setActiveTab] = useState<"personal" | "business" | "edd">("personal");
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<"profile" | "risk" | "edd">("profile");
@@ -240,6 +240,13 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
   function getUserTxns(uid: string) { return transactions.filter(t => t.user_id === uid); }
   function getUserEdd(uid: string) { return localEdd.filter(e => e.user_id === uid); }
   function getEddDocsForRequest(requestId: string) { return eddDocuments.filter(d => d.edd_request_id === requestId); }
+  function getEddCustomer(uid: string) {
+    const kyc = localKyc.find(p => p.user_id === uid);
+    if (kyc) return { name: (kyc.first_name + " " + kyc.last_name).trim(), email: kyc.email || "" };
+    const kyb = localKyb.find(p => p.user_id === uid);
+    if (kyb) return { name: kyb.company_name, email: kyb.company_email || kyb.representative_email || "" };
+    return { name: "Unknown customer", email: "" };
+  }
 
   const filteredKyc = localKyc.filter(p =>
     search === "" ? true :
@@ -405,6 +412,7 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
             {[
               { key: "personal" as const, label: "Personal KYC", count: localKyc.length, color: "bg-blue-500 text-white" },
               { key: "business" as const, label: "Business KYB", count: localKyb.length, color: "bg-purple-500 text-white" },
+              { key: "edd" as const, label: "Active EDD", count: localEdd.filter(e => ["pending", "in_progress"].includes(e.status)).length, color: "bg-amber-500 text-white" },
             ].map(tab => (
               <button key={tab.key} onClick={() => { setActiveTab(tab.key); setSelectedUser(null); setShowEddForm(false); setEditingRisk(false); }}
                 className={"rounded-lg px-5 py-2.5 text-sm font-medium transition " + (activeTab === tab.key ? tab.color : "border border-white/10 text-slate-400 hover:text-white")}>
@@ -498,6 +506,68 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
               })
             )}
           </div>
+
+          {activeTab === "edd" && (
+            <div className="lg:col-span-2 flex flex-col gap-3">
+              {(() => {
+                const queue = localEdd.filter(e => ["pending", "in_progress"].includes(e.status));
+                if (queue.length === 0) return (
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center"><p className="text-slate-400">No pending EDD reviews. All caught up.</p></div>
+                );
+                return queue.map(edd => {
+                  const cust = getEddCustomer(edd.user_id);
+                  const uploaded = getEddDocsForRequest(edd.id);
+                  return (
+                    <div key={edd.id} className="rounded-2xl border border-amber-500/20 bg-white/5 p-5">
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-white">{cust.name}</p>
+                          {cust.email && <p className="text-xs text-slate-500">{cust.email}</p>}
+                        </div>
+                        <span className={"text-xs font-medium border rounded-full px-3 py-1 flex-shrink-0 " + (eddStatusColor[edd.status] || eddStatusColor.pending)}>{edd.status.replace("_", " ")}</span>
+                      </div>
+                      <p className="text-sm text-slate-300 mb-2">{edd.reason}</p>
+                      <p className="text-xs text-slate-600 mb-3">{new Date(edd.created_at).toLocaleDateString("en-GB")}</p>
+
+                      <div className="mb-3">
+                        <p className="text-xs text-slate-500 mb-1.5">Documents uploaded:</p>
+                        {uploaded.length === 0 ? (
+                          <p className="text-xs text-slate-600 italic">None uploaded yet.</p>
+                        ) : (
+                          <div className="flex flex-col gap-1.5">
+                            {uploaded.map(doc => (
+                              <div key={doc.id} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                                <div className="min-w-0">
+                                  <p className="text-xs text-white truncate">{doc.document_type}</p>
+                                  <p className="text-xs text-slate-600 truncate">{doc.file_name}</p>
+                                </div>
+                                {doc.file_url ? (
+                                  <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-400 hover:bg-amber-500/20 transition">View</a>
+                                ) : (
+                                  <span className="flex-shrink-0 text-xs text-slate-600">Unavailable</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2 flex-wrap">
+                        {edd.status === "pending" && (
+                          <button onClick={() => handleUpdateEdd(edd.id, "in_progress")} disabled={updatingEdd === edd.id}
+                            className="rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-400 hover:bg-blue-500/20 transition disabled:opacity-50">Mark In Progress</button>
+                        )}
+                        <button onClick={() => handleUpdateEdd(edd.id, "cleared")} disabled={updatingEdd === edd.id}
+                          className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-400 transition disabled:opacity-50">{updatingEdd === edd.id ? "..." : "Clear EDD ✓"}</button>
+                        <button onClick={() => handleUpdateEdd(edd.id, "escalated")} disabled={updatingEdd === edd.id}
+                          className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 transition disabled:opacity-50">Escalate</button>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+            )}
 
           {/* Detail panel */}
           <div>
