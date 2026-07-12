@@ -511,7 +511,7 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
             <div className="lg:col-span-2 flex flex-col gap-3">
               {(() => {
                 const q = search.toLowerCase();
-                const queue = localEdd.filter(e => ["pending", "in_progress"].includes(e.status)).filter(e => {
+                const queue = localEdd.filter(e => ["pending", "in_progress", "escalated"].includes(e.status)).filter(e => {
                   if (q === "") return true;
                   const cust = getEddCustomer(e.user_id);
                   return cust.name.toLowerCase().includes(q) || cust.email.toLowerCase().includes(q) || (e.reason || "").toLowerCase().includes(q);
