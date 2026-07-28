@@ -14,6 +14,7 @@ interface KycProfile {
   phone?: string;
   email?: string;
   kyc_status?: string;
+  account_status?: string;
   created_at?: string;
   bvn?: string;
   bvn_verification_status?: string;
@@ -53,6 +54,7 @@ interface KybProfile {
   representative_email?: string;
   representative_phone?: string;
   kyb_status?: string;
+  account_status?: string;
   created_at?: string;
   cac_verification_status?: string;
   cac_verified_name?: string;
@@ -77,6 +79,18 @@ interface EddRequest {
   created_at: string;
 }
 
+interface EddDocument {
+  id: string;
+  edd_request_id: string;
+  user_id: string;
+  document_type: string;
+  file_name: string;
+  file_url: string | null;
+  status: string;
+  rejection_reason?: string;
+  uploaded_at: string;
+}
+
 interface Doc {
   user_id: string;
   status: string;
@@ -98,6 +112,9 @@ interface Props {
   documents: Doc[];
   transactions: Txn[];
   eddRequests: EddRequest[];
+  eddDocuments?: EddDocument[];
+  selfieUrls?: Record<string, string>;
+  idDocUrls?: Record<string, string>;
 }
 
 const riskColor = (rating?: string) => {
@@ -105,8 +122,8 @@ const riskColor = (rating?: string) => {
   if (rating === "medium") return "bg-amber-500/20 text-amber-400 border border-amber-500/30";
   return "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
 };
-
 const bvnBadge = (status?: string) => {
+
   if (status === "verified") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ BVN Verified" };
   if (status === "mismatch") return { color: "bg-red-500/20 text-red-400", label: "⚠ BVN Mismatch" };
   if (status === "failed") return { color: "bg-red-500/20 text-red-400", label: "✕ BVN Failed" };
@@ -128,9 +145,9 @@ const govtIdBadge = (status?: string) => {
 };
 
 const tinBadge = (status?: string) => {
-  if (status === "verified") return { color: "bg-emerald-500/20 text-emerald-400", label: "? TIN Verified" };
-  if (status === "mismatch") return { color: "bg-red-500/20 text-red-400", label: "? TIN Mismatch" };
-  if (status === "failed") return { color: "bg-red-500/20 text-red-400", label: "? TIN Failed" };
+  if (status === "verified") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ TIN Verified" };
+  if (status === "mismatch") return { color: "bg-red-500/20 text-red-400", label: "⚠ TIN Mismatch" };
+  if (status === "failed") return { color: "bg-red-500/20 text-red-400", label: "✕ TIN Failed" };
   return { color: "bg-slate-500/20 text-slate-400", label: "TIN Unverified" };
 };
 
@@ -148,7 +165,7 @@ const amlBadge = (status?: string) => {
 };
 
 const livenessBadge = (status?: string) => {
-  if (status === "passed") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ Liveness Passed" };
+ if (status === "passed" || status === "completed") return { color: "bg-emerald-500/20 text-emerald-400", label: "✓ Liveness Passed" };
   if (status === "failed") return { color: "bg-red-500/20 text-red-400", label: "✕ Liveness Failed" };
   return { color: "bg-slate-500/20 text-slate-400", label: "Not Checked" };
 };
@@ -189,9 +206,9 @@ const EDD_DOCUMENT_OPTIONS = [
 ];
 
 export default function CustomersClient({
-  kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddRequests = []
+kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddRequests = [], eddDocuments = [], selfieUrls = {}, idDocUrls = {}
 }: Props) {
-  const [activeTab, setActiveTab] = useState<"personal" | "business">("personal");
+  const [activeTab, setActiveTab] = useState<"personal" | "business" | "edd">("personal");
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<"profile" | "risk" | "edd">("profile");
@@ -208,6 +225,9 @@ export default function CustomersClient({
   const [submittingEdd, setSubmittingEdd] = useState(false);
   const [localEdd, setLocalEdd] = useState<EddRequest[]>(eddRequests);
   const [updatingEdd, setUpdatingEdd] = useState<string | null>(null);
+  const [decisionAction, setDecisionAction] = useState<"approve" | "reject" | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [submittingDecision, setSubmittingDecision] = useState(false);
 
   function getDocStatus(uid: string) {
     const docs = documents.filter(d => d.user_id === uid);
@@ -219,6 +239,14 @@ export default function CustomersClient({
 
   function getUserTxns(uid: string) { return transactions.filter(t => t.user_id === uid); }
   function getUserEdd(uid: string) { return localEdd.filter(e => e.user_id === uid); }
+  function getEddDocsForRequest(requestId: string) { return eddDocuments.filter(d => d.edd_request_id === requestId); }
+  function getEddCustomer(uid: string) {
+    const kyc = localKyc.find(p => p.user_id === uid);
+    if (kyc) return { name: (kyc.first_name + " " + kyc.last_name).trim(), email: kyc.email || "" };
+    const kyb = localKyb.find(p => p.user_id === uid);
+    if (kyb) return { name: kyb.company_name, email: kyb.company_email || kyb.representative_email || "" };
+    return { name: "Unknown customer", email: "" };
+  }
 
   const filteredKyc = localKyc.filter(p =>
     search === "" ? true :
@@ -291,6 +319,29 @@ export default function CustomersClient({
     } finally { setUpdatingEdd(null); }
   }
 
+  async function handleDecision(action: "approve" | "reject") {
+    if (!selectedUser) return;
+    if (action === "reject" && !rejectReason.trim()) return;
+    setSubmittingDecision(true);
+    try {
+      const res = await fetch("/api/update-kyc-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId: selectedUser, accountType: activeTab, action, rejectionReason: rejectReason }),
+      });
+      if (res.ok) {
+        const newStatus = action === "approve" ? "approved" : "rejected";
+        if (activeTab === "personal") {
+          setLocalKyc(prev => prev.map(p => p.user_id === selectedUser ? { ...p, kyc_status: newStatus } : p));
+        } else {
+          setLocalKyb(prev => prev.map(p => p.user_id === selectedUser ? { ...p, kyb_status: newStatus } : p));
+        }
+        setDecisionAction(null);
+        setRejectReason("");
+      }
+    } finally { setSubmittingDecision(false); }
+  }
+
   function toggleEddDoc(doc: string) {
     setEddDocs(prev => prev.includes(doc) ? prev.filter(d => d !== doc) : [...prev, doc]);
   }
@@ -331,6 +382,7 @@ export default function CustomersClient({
           <Link href="/customers" className="text-sm font-medium text-white border-b-2 border-amber-400 pb-0.5">Customers</Link>
           <Link href="/suppliers" className="text-sm text-slate-400 hover:text-white transition">Suppliers</Link>
           <Link href="/audit" className="text-sm text-slate-400 hover:text-white transition">Audit Log</Link>
+          <Link href="/account" className="text-sm text-slate-400 hover:text-white transition">Account</Link>
         </nav>
       </header>
 
@@ -360,6 +412,7 @@ export default function CustomersClient({
             {[
               { key: "personal" as const, label: "Personal KYC", count: localKyc.length, color: "bg-blue-500 text-white" },
               { key: "business" as const, label: "Business KYB", count: localKyb.length, color: "bg-purple-500 text-white" },
+              { key: "edd" as const, label: "Active EDD", count: localEdd.filter(e => ["pending", "in_progress"].includes(e.status)).length, color: "bg-amber-500 text-white" },
             ].map(tab => (
               <button key={tab.key} onClick={() => { setActiveTab(tab.key); setSelectedUser(null); setShowEddForm(false); setEditingRisk(false); }}
                 className={"rounded-lg px-5 py-2.5 text-sm font-medium transition " + (activeTab === tab.key ? tab.color : "border border-white/10 text-slate-400 hover:text-white")}>
@@ -368,7 +421,7 @@ export default function CustomersClient({
             ))}
           </div>
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder={activeTab === "personal" ? "Search by name or email..." : "Search by company, director, or CAC..."}
+            placeholder={activeTab === "personal" ? "Search by name or email..." : activeTab === "business" ? "Search by company, director, or CAC..." : "Search EDD by customer, email, or reason..."}
             className="flex-1 rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400/50" />
         </div>
 
@@ -395,6 +448,7 @@ export default function CustomersClient({
                         {p.nationality && <p className="text-xs text-slate-500">{p.nationality}</p>}
                       </div>
                       <div className="flex flex-col items-end gap-1.5">
+                        {p.account_status === "deleted" && <span className="text-xs font-medium border rounded-full px-3 py-1 border-red-500/40 bg-red-500/20 text-red-400">Account Closed</span>}
                         <span className={"text-xs font-medium border rounded-full px-3 py-1 " + (statusColor[p.kyc_status || "pending"] || statusColor.pending)}>{p.kyc_status || "pending"}</span>
                         <span className={"text-xs font-medium rounded-full px-2 py-0.5 " + riskColor(p.risk_rating)}>{(p.risk_rating || "low").toUpperCase()}</span>
                         {eddCount > 0 && <span className="text-xs font-medium rounded-full px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30">EDD Active</span>}
@@ -433,6 +487,7 @@ export default function CustomersClient({
                         {p.representative_name && <p className="text-xs text-slate-500">Director: {p.representative_title} {p.representative_name}</p>}
                       </div>
                       <div className="flex flex-col items-end gap-1.5">
+                        {p.account_status === "deleted" && <span className="text-xs font-medium border rounded-full px-3 py-1 border-red-500/40 bg-red-500/20 text-red-400">Account Closed</span>}
                         <span className={"text-xs font-medium border rounded-full px-3 py-1 " + (statusColor[p.kyb_status || "pending"] || statusColor.pending)}>{p.kyb_status || "pending"}</span>
                         <span className={"text-xs font-medium rounded-full px-2 py-0.5 " + riskColor(p.risk_rating)}>{(p.risk_rating || "low").toUpperCase()}</span>
                         {eddCount > 0 && <span className="text-xs font-medium rounded-full px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30">EDD Active</span>}
@@ -451,6 +506,73 @@ export default function CustomersClient({
               })
             )}
           </div>
+
+          {activeTab === "edd" && (
+            <div className="lg:col-span-2 flex flex-col gap-3">
+              {(() => {
+                const q = search.toLowerCase();
+                const queue = localEdd.filter(e => ["pending", "in_progress", "escalated"].includes(e.status)).filter(e => {
+                  if (q === "") return true;
+                  const cust = getEddCustomer(e.user_id);
+                  return cust.name.toLowerCase().includes(q) || cust.email.toLowerCase().includes(q) || (e.reason || "").toLowerCase().includes(q);
+                });
+                if (queue.length === 0) return (
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center"><p className="text-slate-400">No pending EDD reviews. All caught up.</p></div>
+                );
+                return queue.map(edd => {
+                  const cust = getEddCustomer(edd.user_id);
+                  const uploaded = getEddDocsForRequest(edd.id);
+                  return (
+                    <div key={edd.id} className="rounded-2xl border border-amber-500/20 bg-white/5 p-5">
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-white">{cust.name}</p>
+                          {cust.email && <p className="text-xs text-slate-500">{cust.email}</p>}
+                        </div>
+                        <span className={"text-xs font-medium border rounded-full px-3 py-1 flex-shrink-0 " + (eddStatusColor[edd.status] || eddStatusColor.pending)}>{edd.status.replace("_", " ")}</span>
+                      </div>
+                      <p className="text-sm text-slate-300 mb-2">{edd.reason}</p>
+                      <p className="text-xs text-slate-600 mb-3">{new Date(edd.created_at).toLocaleDateString("en-GB")}</p>
+
+                      <div className="mb-3">
+                        <p className="text-xs text-slate-500 mb-1.5">Documents uploaded:</p>
+                        {uploaded.length === 0 ? (
+                          <p className="text-xs text-slate-600 italic">None uploaded yet.</p>
+                        ) : (
+                          <div className="flex flex-col gap-1.5">
+                            {uploaded.map(doc => (
+                              <div key={doc.id} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                                <div className="min-w-0">
+                                  <p className="text-xs text-white truncate">{doc.document_type}</p>
+                                  <p className="text-xs text-slate-600 truncate">{doc.file_name}</p>
+                                </div>
+                                {doc.file_url ? (
+                                  <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-400 hover:bg-amber-500/20 transition">View</a>
+                                ) : (
+                                  <span className="flex-shrink-0 text-xs text-slate-600">Unavailable</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2 flex-wrap">
+                        {edd.status === "pending" && (
+                          <button onClick={() => handleUpdateEdd(edd.id, "in_progress")} disabled={updatingEdd === edd.id}
+                            className="rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-400 hover:bg-blue-500/20 transition disabled:opacity-50">Mark In Progress</button>
+                        )}
+                        <button onClick={() => handleUpdateEdd(edd.id, "cleared")} disabled={updatingEdd === edd.id}
+                          className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-400 transition disabled:opacity-50">{updatingEdd === edd.id ? "..." : "Clear EDD ✓"}</button>
+                        <button onClick={() => handleUpdateEdd(edd.id, "escalated")} disabled={updatingEdd === edd.id}
+                          className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 transition disabled:opacity-50">Escalate</button>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+            )}
 
           {/* Detail panel */}
           <div>
@@ -500,14 +622,100 @@ export default function CustomersClient({
                   {/* PROFILE TAB */}
                   {detailTab === "profile" && (
                     <>
+                      {/* Compliance Decision */}
+                      {(() => {
+                        const reviewedStatus = activeTab === "personal" ? selectedKyc?.kyc_status : selectedKyb?.kyb_status;
+                        return (
+                          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                            <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Compliance Decision</p>
+                            <div className="flex items-center gap-3 mb-3">
+                              <span className={"text-sm font-bold px-3 py-1.5 rounded-full " + (statusColor[reviewedStatus || "pending"] || statusColor.pending)}>
+                                {(reviewedStatus || "pending").toUpperCase()}
+                              </span>
+                            </div>
+                            {decisionAction === null && (
+                              <div className="flex gap-2">
+                                <button onClick={() => setDecisionAction("approve")}
+                                  className="flex-1 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400 transition">
+                                  Approve {activeTab === "personal" ? "KYC" : "KYB"}
+                                </button>
+                                <button onClick={() => setDecisionAction("reject")}
+                                  className="flex-1 rounded-xl border border-red-500/30 bg-red-500/10 py-2.5 text-sm font-semibold text-red-400 hover:bg-red-500/20 transition">
+                                  Reject
+                                </button>
+                              </div>
+                            )}
+                            {decisionAction === "approve" && (
+                              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 flex flex-col gap-3">
+                                <p className="text-sm text-emerald-400 font-semibold">Confirm approval?</p>
+                                <p className="text-xs text-slate-400">The customer will be notified that they have passed due diligence. Source and ROECNY will also be notified.</p>
+                                <div className="flex gap-2">
+                                  <button onClick={() => handleDecision("approve")} disabled={submittingDecision}
+                                    className="flex-1 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400 transition disabled:opacity-50">
+                                    {submittingDecision ? "Approving..." : "Confirm Approve"}
+                                  </button>
+                                  <button onClick={() => setDecisionAction(null)}
+                                    className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-400 hover:text-white transition">Cancel</button>
+                                </div>
+                              </div>
+                            )}
+                            {decisionAction === "reject" && (
+                              <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 flex flex-col gap-3">
+                                <p className="text-sm text-red-400 font-semibold">Reason for rejection <span className="text-red-400">*</span></p>
+                                <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)}
+                                  placeholder="Explain the reason, or what additional documents are required..." rows={3}
+                                  className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-red-400/50 resize-none" />
+                                <p className="text-xs text-slate-400">The customer will be notified with this reason.</p>
+                                <div className="flex gap-2">
+                                  <button onClick={() => handleDecision("reject")} disabled={submittingDecision || !rejectReason.trim()}
+                                    className="flex-1 rounded-xl bg-red-500 py-2.5 text-sm font-semibold text-white hover:bg-red-400 transition disabled:opacity-50">
+                                    {submittingDecision ? "Rejecting..." : "Confirm Reject"}
+                                  </button>
+                                  <button onClick={() => { setDecisionAction(null); setRejectReason(""); }}
+                                    className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-400 hover:text-white transition">Cancel</button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
                       {/* Personal verification sections */}
                       {activeTab === "personal" && selectedKyc && (<>
                         {verificationSection("BVN Verification", bvnBadge(selectedKyc.bvn_verification_status), selectedKyc.bvn_verified_at || undefined, selectedKyc.bvn_verified_name || undefined, selectedKyc.bvn_verified_dob ? "DOB on record: " + selectedKyc.bvn_verified_dob : undefined)}
                         {verificationSection("NIN Verification", ninBadge(selectedKyc.nin_verification_status), selectedKyc.nin_verified_at || undefined, selectedKyc.nin_verified_name || undefined)}
                         {verificationSection("Government ID", govtIdBadge(selectedKyc.govt_id_verification_status), selectedKyc.govt_id_verified_at || undefined, selectedKyc.govt_id_verified_name || undefined, selectedKyc.id_type || undefined)}
                         {verificationSection("AML / PEP Screening", amlBadge(selectedKyc.aml_status), selectedKyc.aml_screened_at || undefined)}
-                        {verificationSection("Liveness Check", livenessBadge(selectedKyc.liveness_status), selectedKyc.liveness_checked_at || undefined, undefined, selectedKyc.liveness_probability ? "Confidence: " + (Number(selectedKyc.liveness_probability) * 100).toFixed(1) + "%" : undefined)}
+                        {verificationSection("Liveness Check", livenessBadge(selectedKyc.liveness_status), selectedKyc.liveness_checked_at || undefined, undefined, selectedKyc.liveness_probability ? "Confidence: " + Number(selectedKyc.liveness_probability).toFixed(1) + "%" : undefined)}
                         {verificationSection("Face Match", faceMatchBadge(selectedKyc.face_match_status), selectedKyc.face_match_checked_at || undefined, undefined, selectedKyc.face_match_confidence ? "Confidence: " + Number(selectedKyc.face_match_confidence).toFixed(1) + "%" : undefined)}
+                        {selfieUrls[selectedKyc.user_id] && (
+                          <div>
+                            <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Verified Selfie (Liveness)</p>
+                            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                              <img src={selfieUrls[selectedKyc.user_id]} alt="Verified selfie" className="w-40 h-40 rounded-xl object-cover border border-white/10" />
+                              <p className="text-xs text-slate-600 mt-2">Captured during Dojah liveness verification.</p>
+                            </div>
+                          </div>
+                        )}
+                        {selectedKyb && selfieUrls[selectedKyb.user_id] && (
+                          <div>
+                            <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Director Verified Selfie (Liveness)</p>
+                            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                              <img src={selfieUrls[selectedKyb.user_id]} alt="Director verified selfie" className="w-40 h-40 rounded-xl object-cover border border-white/10" />
+                              <p className="text-xs text-slate-600 mt-2">Captured during Dojah liveness verification.</p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {idDocUrls[selectedKyc.user_id] && (
+                          <div>
+                            <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Verified ID Document</p>
+                            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                              <img src={idDocUrls[selectedKyc.user_id]} alt="Verified ID document" className="w-full max-w-xs rounded-xl object-contain border border-white/10" />
+                              <p className="text-xs text-slate-600 mt-2">Captured during Dojah ID verification.</p>
+                            </div>
+                          </div>
+                        )}
                       </>)}
 
                       {/* Business verification sections */}
@@ -515,6 +723,15 @@ export default function CustomersClient({
                         {verificationSection("CAC Verification", cacBadge(selectedKyb.cac_verification_status), selectedKyb.cac_verified_at || undefined, selectedKyb.cac_verified_name || undefined)}
                         {verificationSection("TIN Verification", tinBadge(selectedKyb.tin_verification_status), selectedKyb.tin_verified_at || undefined, selectedKyb.tin_verified_name || undefined)}
                         {verificationSection("AML / PEP Screening", amlBadge(selectedKyb.aml_status), selectedKyb.aml_screened_at || undefined)}
+                        {idDocUrls[selectedKyb.user_id] && (
+                          <div>
+                            <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Director Verified ID Document</p>
+                            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                              <img src={idDocUrls[selectedKyb.user_id]} alt="Director verified ID document" className="w-full max-w-xs rounded-xl object-contain border border-white/10" />
+                              <p className="text-xs text-slate-600 mt-2">Captured during Dojah ID verification.</p>
+                            </div>
+                          </div>
+                        )}
                       </>)}
 
                       {/* Personal details */}
@@ -768,6 +985,36 @@ export default function CustomersClient({
                               )}
                               {edd.notes && <p className="text-xs text-slate-500 italic mb-2">{edd.notes}</p>}
                               <p className="text-xs text-slate-600 mb-3">{new Date(edd.created_at).toLocaleDateString("en-GB")}</p>
+                              {(() => {
+                                const uploaded = getEddDocsForRequest(edd.id);
+                                return (
+                                  <div className="mb-3">
+                                    <p className="text-xs text-slate-500 mb-1.5">Documents uploaded by customer:</p>
+                                    {uploaded.length === 0 ? (
+                                      <p className="text-xs text-slate-600 italic">None uploaded yet.</p>
+                                    ) : (
+                                      <div className="flex flex-col gap-1.5">
+                                        {uploaded.map(doc => (
+                                          <div key={doc.id} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                                            <div className="min-w-0">
+                                              <p className="text-xs text-white truncate">{doc.document_type}</p>
+                                              <p className="text-xs text-slate-600 truncate">{doc.file_name}</p>
+                                            </div>
+                                            {doc.file_url ? (
+                                              <a href={doc.file_url} target="_blank" rel="noopener noreferrer"
+                                                className="flex-shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-400 hover:bg-amber-500/20 transition">
+                                                View
+                                              </a>
+                                            ) : (
+                                              <span className="flex-shrink-0 text-xs text-slate-600">Unavailable</span>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                               {["pending", "in_progress"].includes(edd.status) && (
                                 <div className="flex gap-2 flex-wrap">
                                   {edd.status === "pending" && (
@@ -803,5 +1050,3 @@ export default function CustomersClient({
     </main>
   );
 }
-
-

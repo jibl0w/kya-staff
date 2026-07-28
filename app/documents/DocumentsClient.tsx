@@ -293,6 +293,7 @@ function TxnDocCard({ doc, processingId, showRejectInput, onToggleReject, onActi
 export default function DocumentsClient({ documents = [], transactionDocuments = [], transactions = [], kycProfiles = [], kybProfiles = [] }: Props) {
   const [activeTab, setActiveTab] = useState<"kyc" | "kyb" | "trade">("kyc");
   const [filter, setFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
+  const [search, setSearch] = useState("");
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [showRejectInput, setShowRejectInput] = useState<Record<string, boolean>>({});
   const [localDocs, setLocalDocs] = useState<KycDoc[]>(documents);
@@ -307,6 +308,15 @@ export default function DocumentsClient({ documents = [], transactionDocuments =
   function getDocStatus(doc: KycDoc) { return doc.status || doc.verification_status || "pending"; }
   function getKycProfile(uid: string) { return kycProfiles.find(p => p.user_id === uid) || null; }
   function getKybProfile(uid: string) { return kybProfiles.find(p => p.user_id === uid) || null; }
+  function matchesSearch(uid: string) {
+    if (search.trim() === "") return true;
+    const kyc = getKycProfile(uid);
+    const kyb = getKybProfile(uid);
+    const name = kyc
+      ? (kyc.first_name + " " + kyc.last_name)
+      : (kyb?.company_name || "");
+    return name.toLowerCase().includes(search.toLowerCase());
+  }
   function getTxn(txnId: string) { return transactions.find(t => t.id === txnId) || null; }
 
   async function handleAction(docId: string, action: "approve" | "reject", isTxnDoc: boolean, reason?: string) {
@@ -371,6 +381,7 @@ export default function DocumentsClient({ documents = [], transactionDocuments =
         <nav className="flex items-center gap-6">
           <Link href="/suppliers" className="text-sm text-slate-400 hover:text-white transition">Suppliers</Link>
           <Link href="/audit" className="text-sm text-slate-400 hover:text-white transition">Audit Log</Link>
+          <Link href="/account" className="text-sm text-slate-400 hover:text-white transition">Account</Link>
           <Link href="/" className="text-sm text-slate-400 hover:text-white transition">Dashboard</Link>
           <Link href="/documents" className="text-sm font-medium text-white border-b-2 border-amber-400 pb-0.5 relative">
             Documents
@@ -419,11 +430,17 @@ export default function DocumentsClient({ documents = [], transactionDocuments =
           ))}
         </div>
 
+        <div className="mb-6">
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search by customer name..."
+            className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400/50" />
+        </div>
+
         {activeTab === "kyc" && (
           <div className="flex flex-col gap-6">
             {Object.keys(groupByUser(applyFilter(kycDocs))).length === 0 ? (
               <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center"><p className="text-slate-400">No {filter === "all" ? "" : filter} Personal KYC documents.</p></div>
-            ) : Object.entries(groupByUser(applyFilter(kycDocs))).map(([uid, userDocs]) => (
+            ) : Object.entries(groupByUser(applyFilter(kycDocs))).filter(([uid]) => matchesSearch(uid)).map(([uid, userDocs]) => (
               <div key={uid} className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
                 <div className="border-b border-white/10 bg-white/5 px-6 py-4 flex items-center justify-between">
                   <div>
@@ -445,7 +462,7 @@ export default function DocumentsClient({ documents = [], transactionDocuments =
           <div className="flex flex-col gap-6">
             {Object.keys(groupByUser(applyFilter(kybDocs))).length === 0 ? (
               <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center"><p className="text-slate-400">No {filter === "all" ? "" : filter} Business KYB documents.</p></div>
-            ) : Object.entries(groupByUser(applyFilter(kybDocs))).map(([uid, userDocs]) => (
+            ) : Object.entries(groupByUser(applyFilter(kybDocs))).filter(([uid]) => matchesSearch(uid)).map(([uid, userDocs]) => (
               <div key={uid} className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
                 <div className="border-b border-white/10 bg-white/5 px-6 py-4 flex items-center justify-between">
                   <div>

@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseServer } from "@/lib/supabase-server";
+import { signDocumentUrls } from "@/lib/signed-url";
 import CustomersClient from "./CustomersClient";
 
 const ADMIN_IDS = process.env.ADMIN_USER_IDS?.split(",") || [];
+const EVIDENCE_BUCKET = "kya-documents";
 
 export default async function CustomersPage() {
   const { userId } = await auth();
@@ -15,13 +17,40 @@ export default async function CustomersPage() {
     { data: documents },
     { data: transactions },
     { data: eddRequests },
+    { data: eddDocuments },
   ] = await Promise.all([
     supabaseServer.from("kyc_profiles").select("*"),
     supabaseServer.from("kyb_profiles").select("*"),
     supabaseServer.from("documents").select("user_id, status, verification_status, document_type"),
     supabaseServer.from("transactions").select("user_id, status, total_value, currency, transaction_ref"),
     supabaseServer.from("edd_requests").select("*").order("created_at", { ascending: false }),
+    supabaseServer.from("edd_documents").select("*").order("uploaded_at", { ascending: false }),
   ]);
+
+  // Generate signed URLs for re-hosted verification evidence (private bucket).
+  // Maps user_id -> temporary viewable URL. Valid 1 hour; regenerated each load.
+  const selfieUrls: Record<string, string> = {};
+  const idDocUrls: Record<string, string> = {};
+  const allProfiles = [...(kycProfiles || []), ...(kybProfiles || [])];
+  await Promise.all(
+    allProfiles.map(async (p: any) => {
+      if (p.selfie_url && !p.selfie_url.startsWith("http")) {
+        const { data } = await supabaseServer.storage
+          .from(EVIDENCE_BUCKET)
+          .createSignedUrl(p.selfie_url, 3600);
+        if (data?.signedUrl) selfieUrls[p.user_id] = data.signedUrl;
+      }
+      if (p.id_document_url && !p.id_document_url.startsWith("http")) {
+        const { data } = await supabaseServer.storage
+          .from(EVIDENCE_BUCKET)
+          .createSignedUrl(p.id_document_url, 3600);
+        if (data?.signedUrl) idDocUrls[p.user_id] = data.signedUrl;
+      }
+    })
+  );
+
+  // Sign EDD document URLs so staff can view what customers uploaded.
+  const signedEddDocuments = await signDocumentUrls(eddDocuments || []);
 
   return (
     <CustomersClient
@@ -30,6 +59,9 @@ export default async function CustomersPage() {
       documents={documents || []}
       transactions={transactions || []}
       eddRequests={eddRequests || []}
+      eddDocuments={signedEddDocuments}
+      selfieUrls={selfieUrls}
+      idDocUrls={idDocUrls}
     />
   );
 }

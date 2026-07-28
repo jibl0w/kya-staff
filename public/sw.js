@@ -1,4 +1,4 @@
-const CACHE_NAME = "kya-staff-v1";
+const CACHE_NAME = "kya-staff-v2";
 const STATIC_ASSETS = ["/", "/documents", "/transactions", "/customers", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
@@ -19,7 +19,17 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
-  if (event.request.url.includes("/api/")) return;
+
+  const url = new URL(event.request.url);
+
+  // Only handle same-origin requests. Let everything cross-origin
+  // (Clerk UI, CDNs, third-party APIs) go straight to the network untouched.
+  if (url.origin !== self.location.origin) return;
+
+  // Skip API routes and Clerk/auth-related paths.
+  if (url.pathname.includes("/api/")) return;
+  if (url.pathname.includes("/sign-in")) return;
+  if (url.pathname.includes("/account")) return;
 
   event.respondWith(
     fetch(event.request)

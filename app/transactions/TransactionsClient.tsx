@@ -110,11 +110,30 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
   const [lcNumber, setLcNumber] = useState("");
   const [adReference, setAdReference] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
   const [activeDetailTab, setActiveDetailTab] = useState<"steps" | "identity" | "documents">("steps");
 
   function getKycProfile(uid: string) { return kycProfiles.find(p => p.user_id === uid) || null; }
   function getKybProfile(uid: string) { return kybProfiles.find(p => p.user_id === uid) || null; }
   function isBusiness(uid: string) { return !!getKybProfile(uid); }
+
+  function getCustomerEmail(uid: string) {
+    const kyc = getKycProfile(uid);
+    if (kyc?.email) return kyc.email;
+    const kyb = getKybProfile(uid);
+    return kyb?.company_email || kyb?.representative_email || "";
+  }
+
+  function matchesSearch(txn: Transaction) {
+    if (search.trim() === "") return true;
+    const q = search.toLowerCase();
+    return (
+      (txn.transaction_ref || "").toLowerCase().includes(q) ||
+      (txn.supplier_name || "").toLowerCase().includes(q) ||
+      getCustomerName(txn.user_id).toLowerCase().includes(q) ||
+      getCustomerEmail(txn.user_id).toLowerCase().includes(q)
+    );
+  }
 
   function getCustomerName(uid: string) {
     const kyc = getKycProfile(uid);
@@ -177,7 +196,7 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
     } finally { setUpdating(false); }
   }
 
-  const filtered = localTxns.filter(t => statusFilter === "all" ? true : t.status === statusFilter);
+  const filtered = localTxns.filter(t => (statusFilter === "all" ? true : t.status === statusFilter) && matchesSearch(t));
   const activeCount = localTxns.filter(t => t.status === "active" || t.status === "draft").length;
   const completeCount = localTxns.filter(t => t.status === "complete").length;
   const flaggedCount = localTxns.filter(t => t.risk_flag).length;
@@ -192,6 +211,7 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
         <nav className="flex items-center gap-6">
           <Link href="/suppliers" className="text-sm text-slate-400 hover:text-white transition">Suppliers</Link>
           <Link href="/audit" className="text-sm text-slate-400 hover:text-white transition">Audit Log</Link>
+          <Link href="/account" className="text-sm text-slate-400 hover:text-white transition">Account</Link>
           <Link href="/" className="text-sm text-slate-400 hover:text-white transition">Dashboard</Link>
           <Link href="/documents" className="text-sm text-slate-400 hover:text-white transition">Documents</Link>
           <Link href="/transactions" className="text-sm font-medium text-white border-b-2 border-amber-400 pb-0.5">Transactions</Link>
@@ -203,7 +223,7 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
         <div className="mb-8">
           <p className="text-xs font-medium uppercase tracking-widest text-amber-400 mb-1">Transaction Management</p>
           <h2 className="text-3xl font-black">Manage Transactions</h2>
-          <p className="text-slate-400 mt-1 text-sm">Advance transactions through the 15-step KYA trade process.</p>
+          <p className="text-slate-400 mt-1 text-sm">Advance transactions through the KYA trade process.</p>
         </div>
 
         <div className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -218,6 +238,12 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
               <p className="text-sm font-medium text-white mt-2">{s.label}</p>
             </div>
           ))}
+        </div>
+
+        <div className="mb-4">
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search by transaction number, supplier, customer name, or email..."
+            className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400/50" />
         </div>
 
         <div className="flex gap-2 mb-6 flex-wrap">
@@ -241,7 +267,7 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
             {filtered.map(txn => {
               const txnSteps = getTxnSteps(txn.id);
               const completedSteps = txnSteps.filter(s => s.status === "complete").length;
-              const progress = Math.round((completedSteps / 15) * 100);
+              const progress = Math.round((completedSteps / (txnSteps.length || 1)) * 100);
               const kyb = getKybProfile(txn.user_id);
 
               return (
@@ -437,13 +463,13 @@ export default function TransactionsClient({ transactions = [], steps = [], tran
                         <p className="text-xs text-slate-500 mb-3">All Steps</p>
                         <div className="flex flex-col gap-1">
                           {getTxnSteps(selectedTxn.id).map(step => (
-                            <div key={step.id} className={"flex items-start gap-3 rounded-lg px-3 py-2.5 " + (step.status === "complete" ? "bg-emerald-500/10" : step.status === "active" ? "bg-amber-500/10" : "opacity-30")}>
-                              <span className={"flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-mono text-xs font-bold mt-0.5 " + (step.status === "complete" ? "bg-emerald-500 text-slate-950" : step.status === "active" ? "border border-amber-400 text-amber-400" : "border border-white/10 text-slate-600")}>
+                            <div key={step.id} className={"flex items-start gap-3 rounded-lg px-3 py-2.5 " + (step.status === "complete" ? "bg-emerald-500/10" : step.status === "active" ? "bg-amber-500/10" : "bg-white/5")}>
+                              <span className={"flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-mono text-xs font-bold mt-0.5 " + (step.status === "complete" ? "bg-emerald-500 text-slate-950" : step.status === "active" ? "border border-amber-400 text-amber-400" : "border border-white/20 text-slate-300")}>
                                 {step.status === "complete" ? "✓" : String(step.step_number).padStart(2, "0")}
                               </span>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between">
-                                  <span className={"text-xs " + (step.status === "complete" ? "text-emerald-300" : step.status === "active" ? "font-medium text-white" : "text-slate-600")}>{step.step_name}</span>
+                                  <span className={"text-xs " + (step.status === "complete" ? "text-emerald-300" : step.status === "active" ? "font-medium text-white" : "text-slate-300")}>{step.step_name}</span>
                                   {step.status === "active" && <span className="text-xs text-amber-400 flex-shrink-0">Current</span>}
                                   {step.status === "complete" && step.completed_at && <span className="text-xs text-slate-600 flex-shrink-0">{new Date(step.completed_at).toLocaleDateString("en-GB")}</span>}
                                 </div>

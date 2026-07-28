@@ -70,7 +70,16 @@ const ACTION_TYPES = [
 
 const ENTITY_TYPES = ["all", "document", "kyc_profile", "kyb_profile", "transaction", "edd_request", "supplier"];
 
-export default function AuditClient({ auditLogs }: { auditLogs: AuditLog[] }) {
+const STAFF_NAMES: Record<string, string> = {
+  "user_3FXSQzHxqqQpp5XDtKUOEFqSwLJ": "Aj aj",
+};
+
+function shortId(id?: string) {
+  if (!id) return "N/A";
+  return id.length > 12 ? id.slice(0, 8) + "…" + id.slice(-4) : id;
+}
+
+export default function AuditClient({ auditLogs, customerNames = {} }: { auditLogs: AuditLog[]; customerNames?: Record<string, string> }) {
   const [actionFilter, setActionFilter] = useState("all");
   const [entityFilter, setEntityFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -107,6 +116,7 @@ export default function AuditClient({ auditLogs }: { auditLogs: AuditLog[] }) {
           <Link href="/customers" className="text-sm text-slate-400 hover:text-white transition">Customers</Link>
           <Link href="/suppliers" className="text-sm text-slate-400 hover:text-white transition">Suppliers</Link>
           <Link href="/audit" className="text-sm font-medium text-white border-b-2 border-amber-400 pb-0.5">Audit Log</Link>
+          <Link href="/account" className="text-sm text-slate-400 hover:text-white transition">Account</Link>
         </nav>
       </header>
 
@@ -171,7 +181,12 @@ export default function AuditClient({ auditLogs }: { auditLogs: AuditLog[] }) {
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-1">
-                      <p className="text-sm text-white leading-snug">{log.description}</p>
+                      <div className="min-w-0">
+                        <p className="text-sm text-white leading-snug">{log.description}</p>
+                        {log.customer_id && customerNames[log.customer_id] && (
+                          <p className="text-xs text-amber-400/80 mt-0.5">Customer: {customerNames[log.customer_id]}</p>
+                        )}
+                      </div>
                       <p className="text-xs text-slate-600 flex-shrink-0">{new Date(log.created_at).toLocaleDateString("en-GB")}</p>
                     </div>
                     <div className="flex gap-2 flex-wrap">
@@ -219,9 +234,9 @@ export default function AuditClient({ auditLogs }: { auditLogs: AuditLog[] }) {
                         { label: "Timestamp", value: new Date(selectedLog.created_at).toLocaleString("en-GB") },
                         { label: "Action", value: selectedLog.action_type.replace(/_/g, " ") },
                         { label: "Entity Type", value: selectedLog.entity_type.replace(/_/g, " ") },
-                        { label: "Entity ID", value: selectedLog.entity_id },
-                        { label: "Customer ID", value: selectedLog.customer_id || "N/A" },
-                        { label: "Performed By", value: selectedLog.performed_by },
+                        { label: "Entity ID", value: shortId(selectedLog.entity_id) },
+                        { label: "Customer", value: selectedLog.customer_id ? (customerNames[selectedLog.customer_id] || shortId(selectedLog.customer_id)) : "N/A" },
+                        { label: "Performed By", value: STAFF_NAMES[selectedLog.performed_by] || shortId(selectedLog.performed_by) },
                       ].map(row => (
                         <div key={row.label} className="flex items-start justify-between gap-4">
                           <p className="text-xs text-slate-500 flex-shrink-0">{row.label}</p>
