@@ -71,7 +71,7 @@ const ACTION_TYPES = [
 const ENTITY_TYPES = ["all", "document", "kyc_profile", "kyb_profile", "transaction", "edd_request", "supplier"];
 
 const STAFF_NAMES: Record<string, string> = {
-  "user_3FXSQzHxqqQpp5XDtKUOEFqSwLJ": "Aj aj",
+  "user_3FXSQzHxqqQpp5XDtKUOEFqSwLJ": "Ajibola Isijola",
 };
 
 function shortId(id?: string) {
