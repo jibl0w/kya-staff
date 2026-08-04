@@ -13,6 +13,25 @@ export async function POST(req: Request) {
   if (!customerId || !accountType || !action) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   if (action === "reject" && !rejectionReason?.trim()) return NextResponse.json({ error: "Rejection reason required" }, { status: 400 });
 
+  // Guard: cannot APPROVE until all required documents are uploaded and approved.
+  // Required: 4 for personal (KYC), 5 for business (KYB). Rejection is always allowed.
+  if (action === "approve") {
+    const { data: docRows } = await supabaseServer
+      .from("documents")
+      .select("status, verification_status")
+      .eq("user_id", customerId);
+    const approvedDocs = (docRows || []).filter(
+      (d) => (d.status || d.verification_status) === "approved"
+    ).length;
+    const requiredDocs = accountType === "business" ? 5 : 4;
+    if (approvedDocs < requiredDocs) {
+      return NextResponse.json(
+        { error: `Cannot approve: all required documents must be uploaded and approved first (${approvedDocs}/${requiredDocs} approved).` },
+        { status: 400 }
+      );
+    }
+  }
+
   const isBusiness = accountType === "business";
   const table = isBusiness ? "kyb_profiles" : "kyc_profiles";
   const statusCol = isBusiness ? "kyb_status" : "kyc_status";
