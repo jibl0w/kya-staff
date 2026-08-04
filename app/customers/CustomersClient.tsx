@@ -338,6 +338,9 @@ kycProfiles = [], kybProfiles = [], documents = [], transactions = [], eddReques
         }
         setDecisionAction(null);
         setRejectReason("");
+      } else {
+        const data = await res.json().catch(() => ({ error: "Something went wrong. Please try again." }));
+        alert(data.error || "Unable to complete this action. Please try again.");
       }
     } finally { setSubmittingDecision(false); }
   }
