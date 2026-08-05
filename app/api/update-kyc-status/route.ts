@@ -95,7 +95,7 @@ export async function POST(req: Request) {
                 <p style="font-size:14px;color:#8A9AB5;line-height:1.75;margin:0 0 16px;">Your ${kind} verification has been <strong style="color:#10B981;">approved</strong>. You have successfully completed due diligence and now have full access to the KYA trade platform.</p>
                 <table cellpadding="0" cellspacing="0" style="margin-top:24px;">
                   <tr><td style="background:#C9A84C;border-radius:8px;">
-                    <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://kya.com.ng"}/dashboard" style="display:inline-block;background:#C9A84C;color:#080C14;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:700;font-size:13px;">Access Dashboard &rarr;</a>
+                    <a href="https://kya.com.ng/dashboard" style="display:inline-block;background:#C9A84C;color:#080C14;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:700;font-size:13px;">Access Dashboard &rarr;</a>
                   </td></tr>
                 </table>
               </td></tr>
@@ -116,15 +116,15 @@ export async function POST(req: Request) {
               </td></tr>
               <tr><td style="padding:40px;">
                 <p style="font-size:16px;color:#E8E0D0;margin:0 0 16px;">Hi ${customerName},</p>
-                <p style="font-size:14px;color:#8A9AB5;line-height:1.75;margin:0 0 16px;">Your ${kind} verification could not be approved at this time and requires your attention.</p>
+                <p style="font-size:14px;color:#8A9AB5;line-height:1.75;margin:0 0 16px;">Your ${kind} verification could not be approved at this time. This is a normal step, and you can resubmit your verification once you've addressed the reason below.</p>
                 <div style="background:#080C14;border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:16px;margin:16px 0;">
                   <p style="font-size:13px;color:#ef4444;font-weight:700;margin:0 0 4px;">Reason / Action Required</p>
                   <p style="font-size:13px;color:#8A9AB5;margin:0;">${rejectionReason || "Please contact our compliance team"}</p>
                 </div>
-                <p style="font-size:14px;color:#8A9AB5;line-height:1.75;">Please log in to review and provide any additional information required.</p>
+                <p style="font-size:14px;color:#8A9AB5;line-height:1.75;">Please log in to your account and retry your verification. If you have any questions, our compliance team is here to help.</p>
                 <table cellpadding="0" cellspacing="0" style="margin-top:24px;">
                   <tr><td style="background:#C9A84C;border-radius:8px;">
-                    <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://kya.com.ng"}/dashboard" style="display:inline-block;background:#C9A84C;color:#080C14;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:700;font-size:13px;">Review &rarr;</a>
+                    <a href="https://kya.com.ng/dashboard/onboarding" style="display:inline-block;background:#C9A84C;color:#080C14;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:700;font-size:13px;">Retry Verification &rarr;</a>
                   </td></tr>
                 </table>
               </td></tr>
