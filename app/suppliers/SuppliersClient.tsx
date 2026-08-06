@@ -33,6 +33,8 @@ const CATEGORIES = [
   "Industrial Equipment & Machinery",
   "Construction & Building Materials",
   "Textiles, Packaging & Manufacturing Inputs",
+  "Electric Vehicles & Accessories",
+  "Agriculture & Farming Equipment",
 ];
 
 const COUNTRIES = [
