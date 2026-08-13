@@ -18,7 +18,10 @@ export type AuditActionType =
   | "supplier_verified"
   | "supplier_suspended"
   | "supplier_deleted"
-  | "supplier_edited";
+  | "supplier_edited"
+  | "product_added"
+  | "product_edited"
+  | "product_deleted";
 
 export type AuditEntityType =
   | "document"
@@ -26,7 +29,8 @@ export type AuditEntityType =
   | "kyb_profile"
   | "transaction"
   | "edd_request"
-  | "supplier";
+  | "supplier"
+  | "product";
 
 interface AuditEntry {
   performedBy: string;
